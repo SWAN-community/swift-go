@@ -22,7 +22,10 @@ import (
 	"net/http"
 )
 
-func handlerEncrypt(s *Services) http.HandlerFunc {
+// HandlerEncrypt takes a Services pointer and returns a HTTP handler used to
+// encrypt the result of a storage operation ready to be provided to the return
+// URL.
+func HandlerEncrypt(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Get the node associated with the request.

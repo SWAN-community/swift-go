@@ -23,7 +23,10 @@ import (
 	"net/http"
 )
 
-func handlerDecrypt(s *Services) http.HandlerFunc {
+// HandlerDecrypt takes a Services pointer and returns a HTTP handler used to
+// decrypt the result of a storage operation provided in the raw query
+// parameter to the return URL.
+func HandlerDecrypt(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Get the node associated with the request.

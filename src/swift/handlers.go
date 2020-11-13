@@ -23,11 +23,11 @@ import (
 
 // AddHandlers to the http default mux for shared web state.
 func AddHandlers(s *Services) {
-	http.HandleFunc("/register", handlerRegister(s))
-	http.HandleFunc("/api/v1/create", handlerCreate(s))
-	http.HandleFunc("/api/v1/encrypt", handlerEncrypt(s))
-	http.HandleFunc("/api/v1/decrypt", handlerDecrypt(s))
-	http.HandleFunc("/", handlerStore(s))
+	http.HandleFunc("/swift/register", HandlerRegister(s))
+	http.HandleFunc("/swift/api/v1/create", HandlerCreate(s))
+	http.HandleFunc("/swift/api/v1/encrypt", HandlerEncrypt(s))
+	http.HandleFunc("/swift/api/v1/decrypt", HandlerDecrypt(s))
+	http.HandleFunc("/", HandlerStore(s))
 }
 
 func returnAPIError(s *Services, w http.ResponseWriter, err error) {

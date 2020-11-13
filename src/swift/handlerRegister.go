@@ -23,7 +23,10 @@ import (
 	"time"
 )
 
-func handlerRegister(s *Services) http.HandlerFunc {
+// HandlerRegister takes a Services pointer and returns a HTTP handler used to
+// register a domain as an Access Node or a Storage Node. Does not work after 
+// the domain has been registered in the storage service.
+func HandlerRegister(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var d Register

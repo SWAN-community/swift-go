@@ -39,7 +39,9 @@ const (
 	bounces              = "bounces"
 )
 
-func handlerCreate(s *Services) http.HandlerFunc {
+// HandlerCreate takes a Services pointer and returns a HTTP handler used by an
+// Access Node to obtain the initial URL for a storage operation.
+func HandlerCreate(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		u, err := createURL(s, r)
 		if err != nil {

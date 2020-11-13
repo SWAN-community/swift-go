@@ -26,7 +26,11 @@ import (
 	"time"
 )
 
-func handlerStore(s *Services) http.HandlerFunc {
+// HandlerStore takes a Services pointer and returns a HTTP handler used to
+// respond to a storage operation. Should not be assigned to an end point as 
+// the table name is the first segment of the URL path, and the encrypted 
+// operation data the second segment.
+func HandlerStore(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Extract the operation parameters from the request.
