@@ -1,0 +1,4 @@
+*.exe
+*.test
+__debug_bin
+pkg/
