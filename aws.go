@@ -123,6 +123,34 @@ func (a *AWS) awsCreateTables() (bool, error) {
 		}
 	}
 
+	for {
+		input := &dynamodb.DescribeTableInput{
+			TableName: aws.String(nodesTableName),
+		}
+		result, err := a.svc.DescribeTable(input)
+		if err != nil {
+
+		} else {
+			if *result.Table.TableStatus == "ACTIVE" {
+				break
+			}
+		}
+	}
+
+	for {
+		input := &dynamodb.DescribeTableInput{
+			TableName: aws.String(secretsTableName),
+		}
+		result, err := a.svc.DescribeTable(input)
+		if err != nil {
+
+		} else {
+			if *result.Table.TableStatus == "ACTIVE" {
+				break
+			}
+		}
+	}
+
 	return true, nil
 }
 
