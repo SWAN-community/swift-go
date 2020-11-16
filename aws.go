@@ -41,7 +41,7 @@ type NodeItem struct {
 	Network      string    // The name of the network the node belongs to
 	Domain       string    // The domain name associated with the node
 	Created      time.Time // The time that the node first came online
-	Expires      time.Time // The time that the node will retire from the network
+	Expires      int64     `json:"expires"` // The time that the node will retire from the network
 	Role         int       // The role the node has in the network
 	ScramblerKey string    // Secret used to scramble data with fixed nonce
 }
@@ -50,6 +50,7 @@ type NodeItem struct {
 type SecretItem struct {
 	Domain       string
 	TimeStamp    time.Time
+	Expires      int64 `json:"expires"`
 	ScramblerKey string
 }
 
@@ -90,66 +91,98 @@ func NewAWS(region string) (*AWS, error) {
 }
 
 func (a *AWS) awsCreateTables() (bool, error) {
-
+	// Create nodes table
 	_, err := a.createNodesTable()
+	nodesExisted, err := a.checkTableExists(err)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case dynamodb.ErrCodeTableAlreadyExistsException:
-				break
-			case dynamodb.ErrCodeResourceInUseException:
-				break
-			default:
-				return false, err
-			}
-		} else {
-			return false, err
-		}
+		return false, err
 	}
 
+	// Create secrets table
 	_, err = a.createSecretsTable()
+	secretsExisted, err := a.checkTableExists(err)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case dynamodb.ErrCodeTableAlreadyExistsException:
-				break
-			case dynamodb.ErrCodeResourceInUseException:
-				break
-			default:
-				return false, err
-			}
-		} else {
+		return false, err
+	}
+
+	if !nodesExisted {
+		// Wait for nodes table to be created
+		err = a.waitUntilTableActive(nodesTableName)
+		if err != nil {
+			return false, err
+		}
+
+		// Set TTL on nodes table expires attribute
+		err = a.setTableTTL(nodesTableName)
+		if err != nil {
 			return false, err
 		}
 	}
 
-	for {
-		input := &dynamodb.DescribeTableInput{
-			TableName: aws.String(nodesTableName),
-		}
-		result, err := a.svc.DescribeTable(input)
+	if !secretsExisted {
+		// Wait for secrets table to be created
+		err = a.waitUntilTableActive(secretsTableName)
 		if err != nil {
 			return false, err
 		}
-		if *result.Table.TableStatus == "ACTIVE" {
-			break
-		}
-	}
 
-	for {
-		input := &dynamodb.DescribeTableInput{
-			TableName: aws.String(secretsTableName),
-		}
-		result, err := a.svc.DescribeTable(input)
+		// Set TTL on secrets table expires attribute
+		err = a.setTableTTL(secretsTableName)
 		if err != nil {
 			return false, err
-		}
-		if *result.Table.TableStatus == "ACTIVE" {
-			break
 		}
 	}
 
 	return true, nil
+}
+
+func (a *AWS) checkTableExists(err error) (bool, error) {
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeTableAlreadyExistsException:
+				return true, nil
+			case dynamodb.ErrCodeResourceInUseException:
+				return true, nil
+			default:
+				return false, err
+			}
+		} else {
+			return false, err
+		}
+	}
+	return false, nil
+}
+
+func (a *AWS) waitUntilTableActive(tableName string) error {
+	for {
+		input := &dynamodb.DescribeTableInput{
+			TableName: aws.String(tableName),
+		}
+		result, err := a.svc.DescribeTable(input)
+		if err != nil {
+			return err
+		}
+		if *result.Table.TableStatus == "ACTIVE" {
+			break
+		}
+	}
+	return nil
+}
+
+func (a *AWS) setTableTTL(tableName string) error {
+	ttlInput := &dynamodb.UpdateTimeToLiveInput{
+		TableName: aws.String(tableName),
+		TimeToLiveSpecification: &dynamodb.TimeToLiveSpecification{
+			AttributeName: aws.String(expiresFieldName),
+			Enabled:       aws.Bool(true),
+		},
+	}
+	_, err := a.svc.UpdateTimeToLive(ttlInput)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *AWS) createNodesTable() (*dynamodb.CreateTableOutput, error) {
@@ -165,6 +198,10 @@ func (a *AWS) createNodesTable() (*dynamodb.CreateTableOutput, error) {
 				AttributeName: aws.String(domainFieldName),
 				AttributeType: aws.String("S"),
 			},
+			{
+				AttributeName: aws.String(expiresFieldName),
+				AttributeType: aws.String("N"),
+			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{
@@ -174,6 +211,24 @@ func (a *AWS) createNodesTable() (*dynamodb.CreateTableOutput, error) {
 			{
 				AttributeName: aws.String(domainFieldName),
 				KeyType:       aws.String("RANGE"),
+			},
+		},
+		LocalSecondaryIndexes: []*dynamodb.LocalSecondaryIndex{
+			{
+				IndexName: aws.String("Expires-index"),
+				KeySchema: []*dynamodb.KeySchemaElement{
+					{
+						AttributeName: aws.String(networkFieldName),
+						KeyType:       aws.String("HASH"),
+					},
+					{
+						AttributeName: aws.String(expiresFieldName),
+						KeyType:       aws.String("RANGE"),
+					},
+				},
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String("KEYS_ONLY"),
+				},
 			},
 		},
 		BillingMode: aws.String("PAY_PER_REQUEST"),
@@ -194,6 +249,10 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 				AttributeName: aws.String(scramblerKeyFieldName),
 				AttributeType: aws.String("S"),
 			},
+			{
+				AttributeName: aws.String(expiresFieldName),
+				AttributeType: aws.String("N"),
+			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{
@@ -203,6 +262,24 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 			{
 				AttributeName: aws.String(scramblerKeyFieldName),
 				KeyType:       aws.String("RANGE"),
+			},
+		},
+		LocalSecondaryIndexes: []*dynamodb.LocalSecondaryIndex{
+			{
+				IndexName: aws.String("Expires-index"),
+				KeySchema: []*dynamodb.KeySchemaElement{
+					{
+						AttributeName: aws.String(domainFieldName),
+						KeyType:       aws.String("HASH"),
+					},
+					{
+						AttributeName: aws.String(expiresFieldName),
+						KeyType:       aws.String("RANGE"),
+					},
+				},
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String("KEYS_ONLY"),
+				},
 			},
 		},
 		BillingMode: aws.String("PAY_PER_REQUEST"),
@@ -254,7 +331,7 @@ func (a *AWS) setNode(node *node) error {
 		node.network,
 		node.domain,
 		node.created,
-		node.expires,
+		node.expires.Unix(),
 		node.role,
 		node.scrambler.key}
 
@@ -350,7 +427,7 @@ func (a *AWS) fetchNodes() (map[string]*node, error) {
 			nodeItem.Network,
 			nodeItem.Domain,
 			nodeItem.Created,
-			nodeItem.Expires,
+			time.Unix(nodeItem.Expires, 0).UTC(),
 			nodeItem.Role,
 			nodeItem.ScramblerKey)
 		if err != nil {
@@ -410,6 +487,7 @@ func (a *AWS) setNodeSecrets(node *node) error {
 		item := SecretItem{
 			node.domain,
 			s.timeStamp,
+			node.expires.Unix(),
 			s.key}
 
 		av, err := dynamodbattribute.MarshalMap(item)
