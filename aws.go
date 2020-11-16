@@ -48,9 +48,9 @@ type NodeItem struct {
 
 // SecretItem is the dynamodb table item representation of a secret
 type SecretItem struct {
-	Domain    string
-	TimeStamp time.Time
-	Key       string
+	Domain       string
+	TimeStamp    time.Time
+	ScramblerKey string
 }
 
 // NewAWS creates a new instance of the AWS structure
@@ -76,10 +76,13 @@ func NewAWS(region string) (*AWS, error) {
 	}
 	a.svc = dynamodb.New(sess)
 
-	a.awsCreateTables()
+	_, err := a.awsCreateTables()
+	if err != nil {
+		return nil, err
+	}
 
 	a.mutex = &sync.Mutex{}
-	err := a.refresh()
+	err = a.refresh()
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +97,8 @@ func (a *AWS) awsCreateTables() (bool, error) {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeTableAlreadyExistsException:
 				break
+			case dynamodb.ErrCodeResourceInUseException:
+				break
 			default:
 				return false, err
 			}
@@ -107,6 +112,8 @@ func (a *AWS) awsCreateTables() (bool, error) {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeTableAlreadyExistsException:
+				break
+			case dynamodb.ErrCodeResourceInUseException:
 				break
 			default:
 				return false, err
@@ -143,11 +150,8 @@ func (a *AWS) createNodesTable() (*dynamodb.CreateTableOutput, error) {
 				KeyType:       aws.String("RANGE"),
 			},
 		},
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(10),
-			WriteCapacityUnits: aws.Int64(10),
-		},
-		TableName: aws.String(nodesTableName),
+		BillingMode: aws.String("PAY_PER_REQUEST"),
+		TableName:   aws.String(nodesTableName),
 	}
 	return a.svc.CreateTable(nodesTableInput)
 }
@@ -175,11 +179,8 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 				KeyType:       aws.String("RANGE"),
 			},
 		},
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(10),
-			WriteCapacityUnits: aws.Int64(10),
-		},
-		TableName: aws.String(secretsTableName),
+		BillingMode: aws.String("PAY_PER_REQUEST"),
+		TableName:   aws.String(secretsTableName),
 	}
 	return a.svc.CreateTable(secretsTableInput)
 }
@@ -219,6 +220,10 @@ func (a *AWS) getNodes(network string) (*nodes, error) {
 
 // SetNode inserts or updates the node.
 func (a *AWS) setNode(node *node) error {
+	err := a.setNodeSecrets(node)
+	if err != nil {
+		return err
+	}
 	item := NodeItem{
 		node.network,
 		node.domain,
@@ -355,7 +360,7 @@ func (a *AWS) addSecrets(ns map[string]*node) error {
 			return err
 		}
 
-		s, err := newSecretFromKey(secretItem.Key, secretItem.TimeStamp)
+		s, err := newSecretFromKey(secretItem.ScramblerKey, secretItem.TimeStamp)
 		if err != nil {
 			return err
 		}
