@@ -58,48 +58,48 @@ func NewConfig(file string) Configuration {
 // Validate confirms that the configuration is usable.
 func (c *Configuration) Validate() error {
 	var err error
-	log.Printf("Debug Mode: %t\n", c.Debug)
+	log.Printf("SWIFT:Debug Mode: %t\n", c.Debug)
 	if err == nil {
 		if c.Message != "" {
-			log.Printf("Message: %s\n", c.Message)
+			log.Printf("SWIFT:Message: %s\n", c.Message)
 		} else {
-			err = fmt.Errorf("Message missing in config")
+			err = fmt.Errorf("SWIFT Message missing in config")
 		}
 	}
 	if err == nil {
 		if c.Title != "" {
-			log.Printf("Title: %s\n", c.Title)
+			log.Printf("SWIFT:Title: %s\n", c.Title)
 		} else {
-			err = fmt.Errorf("Title missing in config")
+			err = fmt.Errorf("SWIFT Title missing in config")
 		}
 	}
 	if err == nil {
 		if c.BackgroundColor != "" {
-			log.Printf("BackgroundColor: %s\n", c.BackgroundColor)
+			log.Printf("SWIFT:BackgroundColor: %s\n", c.BackgroundColor)
 		} else {
-			err = fmt.Errorf("BackgroundColor missing in config")
+			err = fmt.Errorf("SWIFT BackgroundColor missing in config")
 		}
 	}
 	if err == nil {
 		if c.MessageColor != "" {
-			log.Printf("MessageColor: %s\n", c.MessageColor)
+			log.Printf("SWIFT:MessageColor: %s\n", c.MessageColor)
 		} else {
-			err = fmt.Errorf("MessageColor missing in config")
+			err = fmt.Errorf("SWIFT MessageColor missing in config")
 		}
 	}
 	if err == nil {
 		if c.ProgressColor != "" {
-			log.Printf("ProgressColor: %s\n", c.ProgressColor)
+			log.Printf("SWIFT:ProgressColor: %s\n", c.ProgressColor)
 		} else {
-			err = fmt.Errorf("ProgressColor missing in config")
+			err = fmt.Errorf("SWIFT ProgressColor missing in config")
 		}
 	}
 	if err == nil {
 		if c.AzureAccessKey == "" && c.AzureAccount == "" &&
 			c.UseDynamoDB == false && c.AWSRegion == "" {
 			err = fmt.Errorf(
-				"Either Azure table storage or AWS Dynamo DB parameters must " +
-					"be set.")
+				"SWIFT Either Azure table storage or AWS Dynamo DB " +
+					"parameters must be set.")
 		}
 	}
 	return err
