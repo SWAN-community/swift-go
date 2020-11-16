@@ -37,8 +37,8 @@ type Configuration struct {
 	NodeCount       byte          `json:"nodeCount"`
 	AzureAccessKey  string        `json:"azureAccessKey"`
 	AzureAccount    string        `json:"azureAccount"`
-	AWSAccessKey    string        `json:"awsAccessKey"`
-	AWSAccount      string        `json:"awsAccount"`
+	UseDynamoDB     bool          `json:"useDynamoDB"`
+	AWSRegion       string        `json:"awsRegion"`
 	Debug           bool          `json:"debug"`
 }
 
@@ -96,7 +96,7 @@ func (c *Configuration) Validate() error {
 	}
 	if err == nil {
 		if c.AzureAccessKey == "" && c.AzureAccount == "" &&
-			c.AWSAccount == "" && c.AWSAccessKey == "" {
+			c.UseDynamoDB == false && c.AWSRegion == "" {
 			err = fmt.Errorf(
 				"Either Azure table storage or AWS Dynamo DB parameters must " +
 					"be set.")
