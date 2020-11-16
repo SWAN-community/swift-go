@@ -37,7 +37,7 @@ type Configuration struct {
 	NodeCount       byte          `json:"nodeCount"`
 	AzureAccessKey  string        `json:"azureAccessKey"`
 	AzureAccount    string        `json:"azureAccount"`
-	UseDynamoDB     bool          `json"useDynamoDB"`
+	UseDynamoDB     bool          `json:"useDynamoDB"`
 	AWSRegion       string        `json:"awsRegion"`
 	Debug           bool          `json:"debug"`
 }
