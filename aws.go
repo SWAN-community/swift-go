@@ -322,11 +322,11 @@ func (a *AWS) fetchNodes() (map[string]*node, error) {
 	var err error
 	ns := make(map[string]*node)
 
+	// Fetch all the records from the nodes table in Dynamo.
 	params := &dynamodb.ScanInput{
 		TableName: aws.String(nodesTableName),
 	}
 
-	// Fetch all the records from the nodes table in Dynamo.
 	result, err := a.svc.Scan(params)
 	if err != nil {
 		fmt.Println("Query API call failed:")
@@ -363,9 +363,9 @@ func (a *AWS) fetchNodes() (map[string]*node, error) {
 
 func (a *AWS) addSecrets(ns map[string]*node) error {
 
-	// Fetch all the records from the secrets table in Azure.
+	// Fetch all the records from the secrets table in DynamoDB.
 	params := &dynamodb.ScanInput{
-		TableName: aws.String(nodesTableName),
+		TableName: aws.String(secretsTableName),
 	}
 
 	result, err := a.svc.Scan(params)
