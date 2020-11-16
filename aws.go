@@ -129,11 +129,10 @@ func (a *AWS) awsCreateTables() (bool, error) {
 		}
 		result, err := a.svc.DescribeTable(input)
 		if err != nil {
-
-		} else {
-			if *result.Table.TableStatus == "ACTIVE" {
-				break
-			}
+			return false, err
+		}
+		if *result.Table.TableStatus == "ACTIVE" {
+			break
 		}
 	}
 
@@ -143,11 +142,10 @@ func (a *AWS) awsCreateTables() (bool, error) {
 		}
 		result, err := a.svc.DescribeTable(input)
 		if err != nil {
-
-		} else {
-			if *result.Table.TableStatus == "ACTIVE" {
-				break
-			}
+			return false, err
+		}
+		if *result.Table.TableStatus == "ACTIVE" {
+			break
 		}
 	}
 
