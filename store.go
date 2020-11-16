@@ -19,6 +19,8 @@ package swift
 const (
 	nodesTableName        = "swiftnodes"   // Table name for nodes
 	secretsTableName      = "swiftsecrets" // Table name for secrets
+	domainFieldName       = "domain"       // The domain of the node
+	networkFieldName      = "network"      // The network of the node
 	roleFieldName         = "role"         // The role of the node
 	expiresFieldName      = "expires"      // When the node expires
 	scramblerKeyFieldName = "scrambler"    // Used to scramble table and key names
