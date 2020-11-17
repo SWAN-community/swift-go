@@ -16,11 +16,17 @@
 
 package swift
 
+import (
+	"fmt"
+	"net/http"
+)
+
 // Services references all the information needed for every method.
 type Services struct {
 	config  Configuration   // Configuration used by the server.
 	store   Store           // Instance of storage service for node data
 	browser BrowserDetector // Service to provide browser warnings
+	access  Access          // Instance of the access control interface
 }
 
 // NewServices a set of services to use with SWIFT. These provide defaults via
@@ -29,10 +35,12 @@ type Services struct {
 func NewServices(
 	config Configuration,
 	store Store,
+	access Access,
 	browser BrowserDetector) *Services {
 	var s Services
 	s.config = config
 	s.store = store
+	s.access = access
 	s.browser = browser
 	return &s
 }
@@ -43,4 +51,25 @@ func (s *Services) Config() *Configuration { return &s.config }
 // GetAccessNode returns an access node for the network.
 func (s *Services) GetAccessNode(network string) (string, error) {
 	return s.store.GetAccessNode(network)
+}
+
+// Returns true if the request is allowed to access the handler, otherwise false.
+// If false is returned then no further action is needed as the method will have
+// responded to the request already.
+func (s *Services) getAccessAllowed(w http.ResponseWriter, r *http.Request) bool {
+	err := r.ParseForm()
+	if err != nil {
+		returnAPIError(s, w, err, http.StatusInternalServerError)
+		return false
+	}
+	v, err := s.access.GetAllowed(r.FormValue("accesskey"))
+	if v == false || err != nil {
+		returnAPIError(
+			s,
+			w,
+			fmt.Errorf("Access denied"),
+			http.StatusNetworkAuthenticationRequired)
+		return false
+	}
+	return true
 }

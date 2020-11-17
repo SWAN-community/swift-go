@@ -43,6 +43,11 @@ const (
 // Access Node to obtain the initial URL for a storage operation.
 func HandlerCreate(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		if s.getAccessAllowed(w, r) == false {
+			return
+		}
+
 		u, err := createURL(s, r)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
