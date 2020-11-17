@@ -44,6 +44,7 @@ const (
 func HandlerCreate(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		// Check caller can access
 		if s.getAccessAllowed(w, r) == false {
 			return
 		}

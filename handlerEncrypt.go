@@ -28,6 +28,11 @@ import (
 func HandlerEncrypt(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		// Check caller can access
+		if s.getAccessAllowed(w, r) == false {
+			return
+		}
+
 		// Get the node associated with the request.
 		n, err := getAccessNode(s, r)
 		if err != nil {

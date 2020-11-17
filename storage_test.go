@@ -25,7 +25,8 @@ func TestStorageCommon(t *testing.T) {
 	var err error
 	var an *node
 	var bn *node
-	s, err := newVolatileTest()
+	//s, err := newVolatileTest()
+	s, err := newAWSTest()
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()

@@ -19,16 +19,24 @@ package swift
 // AccessSimple is a implementation of swift.Access for testing where a list
 // of keys returns true, and all others return false.
 type AccessSimple struct {
-	validKeys []string // A list of the keys that are valid.
+	validKeys map[string]bool // A list of the keys that are valid.
 }
 
+// NewAccessSimple creates a new instance of the AccessSimple structure
 func NewAccessSimple(validKeys []string) *AccessSimple {
 	var a AccessSimple
-	a.validKeys = validKeys
+
+	m := make(map[string]bool)
+	for _, k := range validKeys {
+		a.validKeys[k] = true
+	}
+	a.validKeys = m
+
 	return &a
 }
 
+// GetAllowed validates access key can access swift handlers
 func (a *AccessSimple) GetAllowed(accessKey string) (bool, error) {
-	// TODO: Change the method to use the list of a hash set.
-	return true, nil
+	return a.validKeys[accessKey], nil
+
 }

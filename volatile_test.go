@@ -21,9 +21,8 @@ import (
 	"time"
 )
 
-func newVolatileTest() (Volatile, error) {
-	var v Volatile
-	v.init()
+func newVolatileTest() (*Volatile, error) {
+	v := newVolatile()
 	for i := 1; i <= 10; i++ {
 		_, err := v.testAddStorage(i)
 		if err != nil {

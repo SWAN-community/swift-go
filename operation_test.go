@@ -34,7 +34,9 @@ func TestOperation(t *testing.T) {
 		t.Fail()
 		return
 	}
-	s := NewServices(newConfigurationTest(), v, r)
+	k := []string{"key"}
+	a := NewAccessSimple(k)
+	s := NewServices(newConfigurationTest(), v, a, r)
 	o1 := newOperation(s, nil)
 	b, err := o1.asByteArray()
 	if err != nil {

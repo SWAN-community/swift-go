@@ -16,6 +16,7 @@
 
 package swift
 
+// Volatile localstorage implementation for testing
 type Volatile struct {
 	common
 }
