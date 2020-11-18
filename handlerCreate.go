@@ -37,6 +37,7 @@ const (
 	xforwarededfor       = "X-FORWARDED-FOR"
 	remoteAddr           = "remoteAddr"
 	bounces              = "bounces"
+	stateParam           = "state"
 )
 
 // HandlerCreate takes a Services pointer and returns a HTTP handler used by an
@@ -116,6 +117,9 @@ func createURL(s *Services, r *http.Request) (string, error) {
 	}
 	o.returnURL = ru.String()
 
+	// Set any state information if provided.
+	o.state = r.Form.Get(stateParam)
+
 	// Set the table that will be used for the storage of the key value
 	// pairs.
 	o.table = r.Form.Get(tableParam)
@@ -137,25 +141,25 @@ func createURL(s *Services, r *http.Request) (string, error) {
 	// Set the user interface parameters from the optional parameters
 	// provided or from the configuration if node provided and the defaults
 	// should be used.
-	o.title = r.Form.Get(titleParam)
-	if o.title == "" {
-		o.title = s.config.Title
+	o.HTML.Title = r.Form.Get(titleParam)
+	if o.HTML.Title == "" {
+		o.HTML.Title = s.config.Title
 	}
-	o.message = r.Form.Get(messageParam)
-	if o.message == "" {
-		o.message = s.config.Message
+	o.HTML.Message = r.Form.Get(messageParam)
+	if o.HTML.Message == "" {
+		o.HTML.Message = s.config.Message
 	}
-	o.messageColor = r.Form.Get(messageColorParam)
-	if o.messageColor == "" {
-		o.messageColor = s.config.MessageColor
+	o.HTML.MessageColor = r.Form.Get(messageColorParam)
+	if o.HTML.MessageColor == "" {
+		o.HTML.MessageColor = s.config.MessageColor
 	}
-	o.backgroundColor = r.Form.Get(backgroundColorParam)
-	if o.backgroundColor == "" {
-		o.backgroundColor = s.config.BackgroundColor
+	o.HTML.BackgroundColor = r.Form.Get(backgroundColorParam)
+	if o.HTML.BackgroundColor == "" {
+		o.HTML.BackgroundColor = s.config.BackgroundColor
 	}
-	o.progressColor = r.Form.Get(progressColorParam)
-	if o.progressColor == "" {
-		o.progressColor = s.config.ProgressColor
+	o.HTML.ProgressColor = r.Form.Get(progressColorParam)
+	if o.HTML.ProgressColor == "" {
+		o.HTML.ProgressColor = s.config.ProgressColor
 	}
 
 	// Add the key value pairs from the form parameters.
@@ -243,5 +247,6 @@ func isReserved(s string) bool {
 		s == browserWarningParam ||
 		s == xforwarededfor ||
 		s == remoteAddr ||
-		s == bounces
+		s == bounces ||
+		s == stateParam
 }

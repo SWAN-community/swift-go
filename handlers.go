@@ -32,6 +32,7 @@ func AddHandlers(
 	http.HandleFunc("/swift/api/v1/create", HandlerCreate(services))
 	http.HandleFunc("/swift/api/v1/encrypt", HandlerEncrypt(services))
 	http.HandleFunc("/swift/api/v1/decrypt", HandlerDecrypt(services))
+	http.HandleFunc("/swift/api/v1/decode-as-json", HandlerDecodeAsJSON(services))
 	http.HandleFunc("/", HandlerStore(services, malformedHandler))
 }
 

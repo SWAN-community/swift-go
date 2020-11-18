@@ -116,8 +116,8 @@ func HandlerStore(
 // The operation is invalid return a malformed request.
 func storeMalformed(s *Services, w http.ResponseWriter, r *http.Request) {
 	var o operation
-	o.backgroundColor = s.config.BackgroundColor
-	o.messageColor = s.config.MessageColor
+	o.HTML.BackgroundColor = s.config.BackgroundColor
+	o.HTML.MessageColor = s.config.MessageColor
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusBadRequest)
@@ -200,10 +200,10 @@ func (o *operation) storeContinue(
 		return
 	}
 
-	// Set the preload header to trigger a DNS lookup on the next domain
-	// before the request to that domain occurs via the navigation
-	// change. Only do this if the next node is not the home node which
-	// will have already been visited.
+	// Set the preload header to trigger a DNS lookup on the next domain before
+	// the request to that domain occurs via the navigation change. Only do this
+	// if the next node is not the home node which will have already been
+	// visited.
 	if o.nextNode != o.HomeNode() {
 		w.Header().Set(
 			"Link",
@@ -223,14 +223,22 @@ func (o *operation) storeContinue(
 func (o *operation) getResults() (string, error) {
 
 	// Build the results array of key value pairs.
-	var r results
-	r.expires = time.Now().UTC().Add(
-		time.Second * o.services.config.BundleTimeout)
+	var r Results
 	for _, p := range o.values {
-		r.values = append(
-			r.values,
-			&result{p.key, p.created, p.expires, p.value})
+		r.Values = append(
+			r.Values,
+			&Result{p.key, p.created, p.expires, p.value})
 	}
+
+	// Add the expiry time for the results.
+	r.Expires = time.Now().UTC().Add(
+		time.Second * o.services.config.BundleTimeout)
+
+	// Add other state information from the storage operation.
+	r.State = o.state
+
+	// Add HTML user interface parameters from the storage operation.
+	r.HTML = o.HTML
 
 	// Encode them as a byte array for encryption.
 	out, err := encodeResults(&r)

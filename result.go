@@ -22,62 +22,55 @@ import (
 	"time"
 )
 
-type result struct {
+// Result from a storage operation.
+type Result struct {
 	Key     string    // The name of the key associated with the value
 	Created time.Time // The UTC time that the value was created
 	Expires time.Time // The UTC time that the value will expire
 	Value   string    // The value as a byte array
 }
 
-type results struct {
-	expires time.Time // The time after which the data can not be decrypted
-	values  []*result // Array of values
+// Results from a storage operation.
+type Results struct {
+	Expires time.Time // The time after which the data can not be decrypted
+	State   string    // Optional state information
+	Values  []*Result // Array of values
+	HTML              // Include the common HTML UI members.
 }
 
-func (r *results) isTimeStampValid() bool {
-	return time.Now().UTC().Before(r.expires)
+// Get returns the result for the key provided, or nil if the key does not
+// exist.
+func (r *Results) Get(key string) *Result {
+	for _, r := range r.Values {
+		if key == r.Key {
+			return r
+		}
+	}
+	return nil
 }
 
-func encodeResults(r *results) ([]byte, error) {
-	var b bytes.Buffer
+// IsTimeStampValid returns true if the time stamp of the result is valid.
+func (r *Results) IsTimeStampValid() bool {
+	return time.Now().UTC().Before(r.Expires)
+}
+
+// DecodeResults turns a byte array into a results data structure.
+func DecodeResults(d []byte) (*Results, error) {
 	var err error
-	err = writeTime(&b, r.expires)
-	if err != nil {
-		return nil, err
-	}
-	err = writeByte(&b, byte(len(r.values)))
-	if err != nil {
-		return nil, err
-	}
-	for _, e := range r.values {
-		err = writeString(&b, e.Key)
-		if err != nil {
-			return nil, err
-		}
-		err = writeDate(&b, e.Created)
-		if err != nil {
-			return nil, err
-		}
-		err = writeDate(&b, e.Expires)
-		if err != nil {
-			return nil, err
-		}
-		err = writeString(&b, e.Value)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return b.Bytes(), nil
-}
-
-func decodeResults(d []byte) (*results, error) {
-	var err error
-	var r results
+	var r Results
 	if d == nil {
 		return nil, errors.New("Byte array empty")
 	}
 	b := bytes.NewBuffer(d)
-	r.expires, err = readTime(b)
+	r.Expires, err = readTime(b)
+	if err != nil {
+		return nil, err
+	}
+	r.State, err = readString(b)
+	if err != nil {
+		return nil, err
+	}
+	err = r.HTML.set(b)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +95,47 @@ func decodeResults(d []byte) (*results, error) {
 		if err != nil {
 			return nil, err
 		}
-		r.values = append(r.values, &result{k, c, e, v})
+		r.Values = append(r.Values, &Result{k, c, e, v})
 	}
 	return &r, nil
+}
+
+func encodeResults(r *Results) ([]byte, error) {
+	var b bytes.Buffer
+	var err error
+	err = writeTime(&b, r.Expires)
+	if err != nil {
+		return nil, err
+	}
+	err = writeString(&b, r.State)
+	if err != nil {
+		return nil, err
+	}
+	err = r.HTML.write(&b)
+	if err != nil {
+		return nil, err
+	}
+	err = writeByte(&b, byte(len(r.Values)))
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range r.Values {
+		err = writeString(&b, e.Key)
+		if err != nil {
+			return nil, err
+		}
+		err = writeDate(&b, e.Created)
+		if err != nil {
+			return nil, err
+		}
+		err = writeDate(&b, e.Expires)
+		if err != nil {
+			return nil, err
+		}
+		err = writeString(&b, e.Value)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return b.Bytes(), nil
 }
