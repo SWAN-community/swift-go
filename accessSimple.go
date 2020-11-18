@@ -28,7 +28,7 @@ func NewAccessSimple(validKeys []string) *AccessSimple {
 
 	m := make(map[string]bool)
 	for _, k := range validKeys {
-		a.validKeys[k] = true
+		m[k] = true
 	}
 	a.validKeys = m
 

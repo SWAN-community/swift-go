@@ -62,7 +62,7 @@ func (s *Services) getAccessAllowed(w http.ResponseWriter, r *http.Request) bool
 		returnAPIError(s, w, err, http.StatusInternalServerError)
 		return false
 	}
-	v, err := s.access.GetAllowed(r.FormValue("accesskey"))
+	v, err := s.access.GetAllowed(r.FormValue("accessKey"))
 	if v == false || err != nil {
 		returnAPIError(
 			s,
