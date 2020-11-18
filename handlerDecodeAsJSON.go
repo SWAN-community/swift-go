@@ -18,19 +18,29 @@ package swift
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
 
-// HandlerEncrypt takes a Services pointer and returns a HTTP handler used to
-// encrypt the result of a storage operation ready to be provided to the return
-// URL.
-func HandlerEncrypt(s *Services) http.HandlerFunc {
+// HandlerDecodeAsJSON returns the incoming request as JSON data. The query
+// string contains the data which must be turned into a byte array, decryped and
+// the resulting data turned into JSON.
+func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		err := r.ParseForm()
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
+			return
+		}
+
+		// Check caller can access
+		if s.getAccessAllowed(w, r) == false {
+			returnAPIError(s, w,
+				errors.New("Not authorized"),
+				http.StatusUnauthorized)
 			return
 		}
 
@@ -48,31 +58,52 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 			return
 		}
 
-		// Encrypt the byte array using the node.
-		out, err := n.encrypt(in)
+		// Decrypt the byte array using the node.
+		d, err := n.decrypt(in)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
+			return
+		}
+		if d == nil {
+			returnAPIError(
+				s,
+				w,
+				fmt.Errorf("Could not decrypt input"),
+				http.StatusUnprocessableEntity)
+			return
+		}
+
+		// Decode the byte array to become a results array.
+		a, err := DecodeResults(d)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
 			return
 		}
 
-		// The output is a binary array.
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Cache-Control", "no-cache")
+		// Validate that the timestamp has not expired.
+		if a.IsTimeStampValid() == false {
+			returnAPIError(
+				s,
+				w,
+				fmt.Errorf("Results expired and can no longer be decrypted"),
+				http.StatusUnprocessableEntity)
+			return
+		}
 
-		// Write the encrypted byte array to the output stream.
-		c, err := w.Write(out)
+		// Turn the array into a JSON string.
+		json, err := json.Marshal(a.Values)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
 		}
-		if c != len(out) {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("Byte count mismatch"),
-				http.StatusInternalServerError)
-			return
+
+		// The output is a json string.
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, err = w.Write([]byte(json))
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusInternalServerError)
 		}
 	}
 }

@@ -29,13 +29,6 @@ import (
 
 type operation struct {
 
-	// HTML template accessible fields.
-	title           string // Window title
-	message         string // Message to display
-	backgroundColor string // Background color of the window
-	messageColor    string // Color of the message text
-	progressColor   string // Color of the progress line
-
 	// Internal persisted state fields.
 	timeStamp      time.Time // The time that the state information was created
 	returnURL      string    // The URL to return to when the operation completes
@@ -46,6 +39,7 @@ type operation struct {
 	values         []*pair   // Values of the data being stored
 	table          string    // The table to store the key value pairs in
 	homeNode       string    // The domain of the home node
+	state          string    // Optional state information
 
 	// The following fields are calculated for each request. Not stored.
 	services    *Services     // The services used for the operation
@@ -55,14 +49,16 @@ type operation struct {
 	homeNodePtr *node         // The pointer to the home node
 	network     *nodes        // The nodes that form the operation network
 	request     *http.Request // Http request associated with the operation
+
+	HTML // Include the common HTML UI members.
 }
 
 func (o *operation) TimeStamp() time.Time    { return o.timeStamp }
-func (o *operation) Title() string           { return o.title }
-func (o *operation) Message() string         { return o.message }
-func (o *operation) BackgroundColor() string { return o.backgroundColor }
-func (o *operation) MessageColor() string    { return o.messageColor }
-func (o *operation) ProgressColor() string   { return o.progressColor }
+func (o *operation) Title() string           { return o.HTML.Title }
+func (o *operation) Message() string         { return o.HTML.Message }
+func (o *operation) BackgroundColor() string { return o.HTML.BackgroundColor }
+func (o *operation) MessageColor() string    { return o.HTML.MessageColor }
+func (o *operation) ProgressColor() string   { return o.HTML.ProgressColor }
 func (o *operation) ReturnURL() string       { return o.returnURL }
 func (o *operation) AccessNode() string      { return o.accessNode }
 func (o *operation) NextURL() *url.URL       { return o.nextURL }
@@ -261,23 +257,7 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, o.title)
-	if err != nil {
-		return nil, err
-	}
-	err = writeString(&b, o.message)
-	if err != nil {
-		return nil, err
-	}
-	err = writeString(&b, o.backgroundColor)
-	if err != nil {
-		return nil, err
-	}
-	err = writeString(&b, o.messageColor)
-	if err != nil {
-		return nil, err
-	}
-	err = writeString(&b, o.progressColor)
+	err = o.HTML.write(&b)
 	if err != nil {
 		return nil, err
 	}
@@ -290,6 +270,10 @@ func (o *operation) asByteArray() ([]byte, error) {
 		return nil, err
 	}
 	err = writeString(&b, o.homeNode)
+	if err != nil {
+		return nil, err
+	}
+	err = writeString(&b, o.state)
 	if err != nil {
 		return nil, err
 	}
@@ -324,23 +308,7 @@ func (o *operation) setFromByteArray(d []byte) error {
 	if err != nil {
 		return err
 	}
-	o.title, err = readString(b)
-	if err != nil {
-		return err
-	}
-	o.message, err = readString(b)
-	if err != nil {
-		return err
-	}
-	o.backgroundColor, err = readString(b)
-	if err != nil {
-		return err
-	}
-	o.messageColor, err = readString(b)
-	if err != nil {
-		return err
-	}
-	o.progressColor, err = readString(b)
+	err = o.HTML.set(b)
 	if err != nil {
 		return err
 	}
@@ -353,6 +321,10 @@ func (o *operation) setFromByteArray(d []byte) error {
 		return err
 	}
 	o.homeNode, err = readString(b)
+	if err != nil {
+		return err
+	}
+	o.state, err = readString(b)
 	if err != nil {
 		return err
 	}

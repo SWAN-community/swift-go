@@ -38,5 +38,4 @@ func NewAccessSimple(validKeys []string) *AccessSimple {
 // GetAllowed validates access key can access swift handlers
 func (a *AccessSimple) GetAllowed(accessKey string) (bool, error) {
 	return a.validKeys[accessKey], nil
-
 }

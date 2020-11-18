@@ -18,7 +18,6 @@ package swift
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -32,7 +31,15 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 
 		// Check caller can access
 		if s.getAccessAllowed(w, r) == false {
-			returnAPIError(s, w, errors.New("not authorized"), http.StatusUnauthorized)
+			returnAPIError(s, w,
+				errors.New("Not authorized"),
+				http.StatusUnauthorized)
+			return
+		}
+
+		err := r.ParseForm()
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -44,7 +51,7 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 		}
 
 		// Decode the query string to form the byte array.
-		in, err := base64.RawURLEncoding.DecodeString(r.URL.RawQuery)
+		in, err := base64.RawURLEncoding.DecodeString(r.Form.Get("data"))
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
 			return
@@ -65,35 +72,11 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 			return
 		}
 
-		// Decode the byte array to become a results array.
-		a, err := decodeResults(d)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
-			return
-		}
-
-		// Validate that the timestamp has not expired.
-		if a.isTimeStampValid() == false {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("Results expired and can no longer be decrypted"),
-				http.StatusUnprocessableEntity)
-			return
-		}
-
-		// Turn the array into a json string.
-		json, err := json.Marshal(a.values)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
-			return
-		}
-
-		// The output is a json string.
+		// The output as a byte array.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", "no-cache")
-		_, err = w.Write([]byte(json))
+		_, err = w.Write(d)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 		}

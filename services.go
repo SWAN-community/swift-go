@@ -56,7 +56,9 @@ func (s *Services) GetAccessNode(network string) (string, error) {
 // Returns true if the request is allowed to access the handler, otherwise false.
 // If false is returned then no further action is needed as the method will have
 // responded to the request already.
-func (s *Services) getAccessAllowed(w http.ResponseWriter, r *http.Request) bool {
+func (s *Services) getAccessAllowed(
+	w http.ResponseWriter,
+	r *http.Request) bool {
 	err := r.ParseForm()
 	if err != nil {
 		returnAPIError(s, w, err, http.StatusInternalServerError)
