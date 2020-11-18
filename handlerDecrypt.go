@@ -19,6 +19,7 @@ package swift
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -31,6 +32,7 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 
 		// Check caller can access
 		if s.getAccessAllowed(w, r) == false {
+			returnAPIError(s, w, errors.New("not authorized"), http.StatusUnauthorized)
 			return
 		}
 

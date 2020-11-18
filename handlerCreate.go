@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -46,6 +47,7 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 
 		// Check caller can access
 		if s.getAccessAllowed(w, r) == false {
+			returnAPIError(s, w, errors.New("not authorized"), http.StatusUnauthorized)
 			return
 		}
 
