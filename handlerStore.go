@@ -63,7 +63,7 @@ func HandlerStore(
 			// home node.
 			if o.nextNode == nil {
 				o.nextNode = o.network.getRandomNode(func(i *node) bool {
-					return i != o.HomeNode() && i.role == roleStorage
+					return i.role == roleStorage && i != o.HomeNode()
 				})
 			}
 
@@ -81,8 +81,8 @@ func HandlerStore(
 
 		if o.nextNode != nil {
 
-			// Process any cookies to make sure this node stores the current version
-			// of the data.
+			// Process any cookies to make sure this node stores the current
+			// version of the data.
 			o.processCookies(w, r)
 
 			// If this is the first node and all the cookies are valid then
