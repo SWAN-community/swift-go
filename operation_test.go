@@ -56,33 +56,33 @@ func TestOperation(t *testing.T) {
 		t.Fail()
 		return
 	}
-	if o1.title != o2.title {
-		fmt.Println(o1.title)
-		fmt.Println(o2.title)
+	if o1.Title() != o2.Title() {
+		fmt.Println(o1.Title())
+		fmt.Println(o2.Title())
 		t.Fail()
 		return
 	}
-	if o1.message != o2.message {
-		fmt.Println(o1.message)
-		fmt.Println(o2.message)
+	if o1.Message() != o2.Message() {
+		fmt.Println(o1.Message())
+		fmt.Println(o2.Message())
 		t.Fail()
 		return
 	}
-	if o1.backgroundColor != o2.backgroundColor {
-		fmt.Println(o1.backgroundColor)
-		fmt.Println(o2.backgroundColor)
+	if o1.BackgroundColor() != o2.BackgroundColor() {
+		fmt.Println(o1.BackgroundColor())
+		fmt.Println(o2.BackgroundColor())
 		t.Fail()
 		return
 	}
-	if o1.messageColor != o2.messageColor {
-		fmt.Println(o1.messageColor)
-		fmt.Println(o2.messageColor)
+	if o1.MessageColor() != o2.MessageColor() {
+		fmt.Println(o1.MessageColor())
+		fmt.Println(o2.MessageColor())
 		t.Fail()
 		return
 	}
-	if o1.progressColor != o2.progressColor {
-		fmt.Println(o1.progressColor)
-		fmt.Println(o2.progressColor)
+	if o1.ProgressColor() != o2.ProgressColor() {
+		fmt.Println(o1.ProgressColor())
+		fmt.Println(o2.ProgressColor())
 		t.Fail()
 		return
 	}
@@ -92,9 +92,9 @@ func TestOperation(t *testing.T) {
 		t.Fail()
 		return
 	}
-	if o1.message != o2.message {
-		fmt.Println(o1.title)
-		fmt.Println(o2.title)
+	if o1.Message() != o2.Message() {
+		fmt.Println(o1.Title())
+		fmt.Println(o2.Title())
 		t.Fail()
 		return
 	}
