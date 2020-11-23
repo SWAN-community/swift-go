@@ -55,23 +55,16 @@ type SecretItem struct {
 }
 
 // NewAWS creates a new instance of the AWS structure
-func NewAWS(region string) (*AWS, error) {
+func NewAWS() (*AWS, error) {
 	var a AWS
 	var sess *session.Session
 
-	// Configure session with credentials from .aws/credentials and region...
-	if region != "" {
-		// ... from region param
-		config := &aws.Config{
-			Region: aws.String(region),
-		}
-		sess = session.Must(session.NewSession(config))
-	} else {
-		// ... from .aws/config
-		sess = session.Must(session.NewSessionWithOptions(session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-		}))
-	}
+	// Configure session with credentials from .aws/credentials or env and
+	// region from .aws/config or env
+	sess = session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
 	if sess == nil {
 		return nil, errors.New("AWS session is nil")
 	}

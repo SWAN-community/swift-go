@@ -35,10 +35,6 @@ type Configuration struct {
 	ProgressColor   string        `json:"progressColor"`
 	Scheme          string        `json:"scheme"`
 	NodeCount       byte          `json:"nodeCount"`
-	AzureAccessKey  string        `json:"azureAccessKey"`
-	AzureAccount    string        `json:"azureAccount"`
-	UseDynamoDB     bool          `json:"useDynamoDB"`
-	AWSRegion       string        `json:"awsRegion"`
 	Debug           bool          `json:"debug"`
 }
 
@@ -92,14 +88,6 @@ func (c *Configuration) Validate() error {
 			log.Printf("SWIFT:ProgressColor: %s\n", c.ProgressColor)
 		} else {
 			err = fmt.Errorf("SWIFT ProgressColor missing in config")
-		}
-	}
-	if err == nil {
-		if c.AzureAccessKey == "" && c.AzureAccount == "" &&
-			c.UseDynamoDB == false && c.AWSRegion == "" {
-			err = fmt.Errorf(
-				"SWIFT Either Azure table storage or AWS Dynamo DB " +
-					"parameters must be set.")
 		}
 	}
 	return err

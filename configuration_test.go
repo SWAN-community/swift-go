@@ -24,8 +24,6 @@ func newConfigurationTest() Configuration {
 	c.MessageColor = "black"
 	c.ProgressColor = "blue"
 	c.Scheme = "https"
-	c.AzureAccessKey = "1"
-	c.AzureAccount = "2"
 	c.Debug = true
 	return c
 }
