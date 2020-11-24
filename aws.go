@@ -411,7 +411,7 @@ func (a *AWS) fetchNodes() (map[string]*node, error) {
 
 		err = dynamodbattribute.UnmarshalMap(i, &nodeItem)
 		if err != nil {
-			fmt.Println("Got error unmarshalling:")
+			fmt.Println("Got error un-marshalling:")
 			fmt.Println(err.Error())
 			return nil, err
 		}
@@ -451,7 +451,7 @@ func (a *AWS) addSecrets(ns map[string]*node) error {
 
 		err = dynamodbattribute.UnmarshalMap(i, &secretItem)
 		if err != nil {
-			fmt.Println("Got error unmarshalling:")
+			fmt.Println("Got error un-marshalling:")
 			fmt.Println(err.Error())
 			return err
 		}
