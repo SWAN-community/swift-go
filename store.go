@@ -16,6 +16,12 @@
 
 package swift
 
+import (
+	"errors"
+	"log"
+	"os"
+)
+
 const (
 	nodesTableName        = "swiftnodes"   // Table name for nodes
 	secretsTableName      = "swiftsecrets" // Table name for secrets
@@ -41,4 +47,41 @@ type Store interface {
 
 	// SetNode inserts or updates the node.
 	setNode(node *node) error
+}
+
+// NewStore returns a work implementation of the Store interface for the
+// configuration supplied.
+func NewStore(swiftConfig Configuration) Store {
+	var swiftStore Store
+	var err error
+
+	azureAccountName, azureAccountKey :=
+		os.Getenv("AZURE_STORAGE_ACCOUNT"),
+		os.Getenv("AZURE_STORAGE_ACCESS_KEY")
+	if len(azureAccountName) > 0 || len(azureAccountKey) > 0 {
+		log.Printf("SWIFT: Using Azure Table Storage")
+		if len(azureAccountName) == 0 || len(azureAccountKey) == 0 {
+			panic(errors.New("Either the AZURE_STORAGE_ACCOUNT or " +
+				"AZURE_STORAGE_ACCESS_KEY environment variable is not set."))
+		}
+		swiftStore, err = NewAzure(
+			azureAccountName,
+			azureAccountKey)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		log.Printf("SWIFT: Using AWS DynamoDB")
+		swiftStore, err = NewAWS()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if swiftStore == nil {
+		panic(errors.New("SWIFT: store not configured, have you set AWS " +
+			" OR Azure Storage Table credentials?"))
+	}
+
+	return swiftStore
 }
