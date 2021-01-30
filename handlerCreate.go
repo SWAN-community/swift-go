@@ -60,9 +60,15 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
 		}
+		b := []byte(u)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Write([]byte(u))
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
+		_, err = w.Write(b)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

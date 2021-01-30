@@ -59,6 +59,7 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(out)))
 
 		// Write the encrypted byte array to the output stream.
 		c, err := w.Write(out)

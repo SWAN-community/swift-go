@@ -98,10 +98,12 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 		}
 
 		// The output is a json string.
+		b := []byte(json)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-cache")
-		_, err = w.Write([]byte(json))
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
+		_, err = w.Write(b)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 		}
