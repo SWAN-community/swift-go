@@ -26,16 +26,34 @@ import (
 
 // Configuration maps to the appsettings.json settings file.
 type Configuration struct {
-	BundleTimeout   time.Duration `json:"bundleTimeout"`
-	CookieTimeout   time.Duration `json:"cookieTimeout"`
-	Message         string        `json:"message"`
-	Title           string        `json:"title"`
-	BackgroundColor string        `json:"backgroundColor"`
-	MessageColor    string        `json:"messageColor"`
-	ProgressColor   string        `json:"progressColor"`
-	Scheme          string        `json:"scheme"`
-	NodeCount       byte          `json:"nodeCount"`
-	Debug           bool          `json:"debug"`
+	// The number of seconds from creation of an operation that it is valid for.
+	// Used to prevent repeated processing of the same operation.
+	BundleTimeout time.Duration `json:"bundleTimeout"`
+	// The length of time values stored in SWIFT nodes can be relied upon to be
+	// current. Used by the home node to determine if it should consult other
+	// nodes in the network before returning it's current values.
+	HomeNodeTimeout time.Duration `json:"homeNodeTimeout"`
+	// The default message to display in the user interface if one is not
+	// provided by the requestor of the storage operation.
+	Message string `json:"message"`
+	// The title of the web page to use in the user interface if one is not
+	// provided by the requestor of the storage operation.
+	Title string `json:"title"`
+	// The background color of the web page to use in the user interface if one
+	// is not provided by the requestor of the storage operation.
+	BackgroundColor string `json:"backgroundColor"`
+	// The message color to use in the user interface if one is not provided by
+	// the requestor of the storage operation.
+	MessageColor string `json:"messageColor"`
+	// The progress circle color to use in the user interface if one is not
+	// provided by the requestor of the storage operation.
+	ProgressColor string `json:"progressColor"`
+	// The HTTP scheme to use (HTTP for development and HTTPS for production).
+	Scheme string `json:"scheme"`
+	// The number of nodes to consult when accessing the SWIFT network.
+	NodeCount byte `json:"nodeCount"`
+	// True to enable debug logging and user interfaces.
+	Debug bool `json:"debug"`
 }
 
 // NewConfig creates a new instance of configuration from the file provided.
