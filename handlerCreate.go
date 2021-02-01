@@ -72,6 +72,15 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 	}
 }
 
+// SetHomeNodeHeaders adds the HTTP headers from the request that are relevant
+// to the calculation of the home node to the values collection.
+func SetHomeNodeHeaders(r *http.Request, q *url.Values) {
+	if r.Header.Get("X-FORWARDED-FOR") != "" {
+		q.Set("X-FORWARDED-FOR", r.Header.Get("X-FORWARDED-FOR"))
+	}
+	q.Set("remoteAddr", r.RemoteAddr)
+}
+
 func createURL(s *Services, r *http.Request) (string, error) {
 
 	// Get the node associated with the request.
