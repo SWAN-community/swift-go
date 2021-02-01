@@ -193,7 +193,7 @@ func (o *operation) getCookiesValid() bool {
 		}
 	}
 	d := time.Now().UTC().Sub(t) / time.Second
-	return d < o.services.config.CookieTimeout
+	return d < o.services.config.HomeNodeTimeout
 }
 
 // Returns true if cookies exist for all the values in the bundle, otherwise
