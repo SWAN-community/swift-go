@@ -53,14 +53,14 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 		// Decode the query string to form the byte array.
 		in, err := base64.RawURLEncoding.DecodeString(r.Form.Get("data"))
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
+			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
 		// Decrypt the byte array using the node.
 		d, err := n.decrypt(in)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
+			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 		if d == nil {
@@ -68,7 +68,7 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 				s,
 				w,
 				fmt.Errorf("Could not decrypt input"),
-				http.StatusUnprocessableEntity)
+				http.StatusBadRequest)
 			return
 		}
 

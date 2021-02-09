@@ -44,14 +44,14 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 		// Decode the query string to form the byte array.
 		in, err := base64.RawURLEncoding.DecodeString(r.Form.Get("data"))
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
+			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
 		// Encrypt the byte array using the node.
 		out, err := n.encrypt(in)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusUnprocessableEntity)
+			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
