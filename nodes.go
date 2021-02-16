@@ -97,14 +97,16 @@ func (ns *nodes) getHomeNode(xff string, ra string) (*node, error) {
 	i := ns.getNodeIndexByHash(getRemoteAddrHash(xff, ra))
 	if i < 0 || i >= len(ns.hash) {
 		return nil, fmt.Errorf(
-			"No node available for remote address '%s'",
+			"None of the '%d' available nodes were identified as a home node "+
+				"for remote address '%s'",
+			len(ns.hash),
 			getRemoteAddr(xff, ra))
 	}
 	return ns.hash[i], nil
 }
 
 func (ns *nodes) getNodeIndexByHash(h uint32) int {
-	var m int
+	m := 0
 	l := 0
 	u := len(ns.hash) - 1
 	for l <= u {
