@@ -19,10 +19,11 @@ package swift
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -42,6 +43,18 @@ const (
 	accessKey            = "accessKey"
 )
 
+// Used to determine the storage character from the key to use for the
+// operation.
+var operationCharacterRegEx *regexp.Regexp
+
+func init() {
+	var err error
+	operationCharacterRegEx, err = regexp.Compile("\\<|\\>|\\+")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 // HandlerCreate takes a Services pointer and returns a HTTP handler used by an
 // Access Node to obtain the initial URL for a storage operation.
 func HandlerCreate(s *Services) http.HandlerFunc {
@@ -57,7 +70,7 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 
 		u, err := createURL(s, r)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 		b := []byte(u)
@@ -195,6 +208,10 @@ func createURL(s *Services, r *http.Request) (string, error) {
 			if err != nil {
 				return "", err
 			}
+			if p.conflict == conflictInvalid {
+				return "", fmt.Errorf(
+					"Pair does not contain valid conflict flag")
+			}
 			o.values = append(o.values, p)
 		}
 	}
@@ -229,35 +246,50 @@ func createURL(s *Services, r *http.Request) (string, error) {
 func createPair(k string, v string) (*pair, error) {
 	var err error
 	var p pair
-	var i int
-	o := strings.Index(k, "<")
-	n := strings.Index(k, ">")
-	if o < 0 && n < 0 {
-		return nil, fmt.Errorf("Key '%s' must include a '<' (oldest wins) "+
-			"or '>' (newest wins) character to resolve conflicts when two "+
-			"different values are encountered", k)
+
+	// Get the command for the storage operation.
+	i := operationCharacterRegEx.FindStringIndex(k)
+	if i == nil {
+		return nil, fmt.Errorf("Key '%s' must include a '+' to add the value "+
+			"to a list of values, or '<' (oldest wins) or '>' (newest wins) "+
+			"character to determine how to resolve two values for the same "+
+			"key, followed by a date in YYYY-MM-DD format to indicate when "+
+			"the value expires and is automatically deleted", k)
 	}
-	if o > 0 && n > 0 {
+	if len(i) > 2 || i[1]-i[0] != 1 {
 		return nil, fmt.Errorf(
-			"Key '%s' must contained only one '<' or '>' character", k)
+			"Key '%s' must contained only one '+', '<' or '>' character", k)
 	}
-	if o > 0 {
-		i = o
+
+	// Set how multipe values for the same key are handled.
+	switch k[i[0]] {
+	case '+':
+		p.conflict = conflictAdd
+		break
+	case '<':
 		p.conflict = conflictOldest
-	} else {
-		i = n
+		break
+	case '>':
 		p.conflict = conflictNewest
+		break
+	default:
+		return nil, fmt.Errorf("Character '%c' invalid", k[i[0]])
 	}
-	p.expires, err = time.Parse("2006-01-02", k[i+1:])
+
+	// Work out the expiry time from the date that appears after the conflict
+	// character.
+	p.expires, err = time.Parse("2006-01-02", k[i[0]+1:])
 	if err != nil {
 		return nil, err
 	}
 	if p.expires.Before(time.Now().UTC()) {
 		return nil, fmt.Errorf(
-			"Key expiry date '%s' must be in the future", k[i+1:])
+			"Key expiry date '%s' must be in the future", k[i[0]+1:])
 	}
+
+	// Complete the data for the pair.
 	p.created = time.Now().UTC()
-	p.key = k[:i]
+	p.key = k[:i[0]]
 	p.value = v
 	return &p, err
 }

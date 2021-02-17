@@ -209,20 +209,19 @@ func (o *operation) getCookiesPresent() bool {
 func (o *operation) setValueInCookie(
 	w http.ResponseWriter,
 	r *http.Request,
-	p *pair) (time.Time, error) {
+	p *pair) error {
 	var b bytes.Buffer
-	t := time.Now().UTC()
-	err := writeTime(&b, t)
+	err := writeTime(&b, time.Now().UTC())
 	if err != nil {
-		return t, err
+		return err
 	}
 	err = p.writeToBuffer(&b)
 	if err != nil {
-		return t, err
+		return err
 	}
 	v, err := o.thisNode.encrypt(b.Bytes())
 	if err != nil {
-		return t, err
+		return err
 	}
 	cookie := http.Cookie{
 		Name:     o.thisNode.scramble(p.key),
@@ -234,7 +233,7 @@ func (o *operation) setValueInCookie(
 		HttpOnly: true,
 		Expires:  p.expires}
 	http.SetCookie(w, &cookie)
-	return t, nil
+	return nil
 }
 
 func getDomain(h string) string {

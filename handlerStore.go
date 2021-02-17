@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -83,7 +84,10 @@ func HandlerStore(
 
 			// Process any cookies to make sure this node stores the current
 			// version of the data.
-			o.processCookies(w, r)
+			err = o.processCookies(w, r)
+			if err != nil && s.config.Debug {
+				log.Println(err.Error())
+			}
 
 			// If this is the first node and all the cookies are valid then
 			// there is no need to continue bouncing.
@@ -97,7 +101,10 @@ func HandlerStore(
 
 			// Process any cookies to make sure this node stores the current
 			// version of the data.
-			o.processCookies(w, r)
+			err = o.processCookies(w, r)
+			if err != nil && s.config.Debug {
+				log.Println(err.Error())
+			}
 
 			// If this is the home node and the last operation then validate
 			// that cookies are available. If not then a warning will need to be
@@ -305,17 +312,34 @@ func (o *operation) asURLParameter() (string, error) {
 // For each of the keys that this operation is concerned with find the value
 // from the cookies if there is a cookie that shares the key. If there is no
 // cookie already for the key then set one in the response.
-func (o *operation) processCookies(w http.ResponseWriter, r *http.Request) {
+func (o *operation) processCookies(
+	w http.ResponseWriter,
+	r *http.Request) error {
 	for _, p := range o.values {
 		c, err := r.Cookie(o.thisNode.scramble(p.key))
-		if err == nil {
-			processCookie(w, r, o, p, c)
+		if err != nil {
+
+			// If there was a problem getting the cookie then just write the
+			// new cookie from the operational pair.
+			err = o.setValueInCookie(w, r, p)
+
 		} else {
-			o.setValueInCookie(w, r, p)
+
+			// Process the cookie and the operational pair to determine which
+			// one should be used for the value, or if a list of values if they
+			// should be combined.
+			err = processCookie(w, r, o, p, c)
+		}
+		if err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
+// processCookie determines if the cookie value contained in c should be used
+// OR if the operational data in p should be used. The cookie is then updated
+// with the value selected.
 func processCookie(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -335,21 +359,28 @@ func processCookie(
 
 		// Resolve the conflict between the operation's value and the one found
 		// in the cookie.
-		res := resolveConflict(p, v)
+		res, err := resolveConflict(p, v)
+		if err != nil {
+			return err
+		}
 
 		// Update the cookie for this node with the resolved value. Even if the
 		// value is not changing the pair.cookieWriteTime field needs to be
 		// updated to indicate to subsequent operations when the data was last
 		// current.
-		o.setValueInCookie(w, r, res)
+		err = o.setValueInCookie(w, r, res)
+		if err != nil {
+			return err
+		}
 
-		// If the cookie pair was chosen then update the operation data.
+		// If the a pair other than the operational pair was chosen then update
+		// the operational pair.
 		if res != p {
-			p.conflict = v.conflict
-			p.created = v.created
-			p.expires = v.expires
-			p.key = v.key
-			p.value = v.value
+			p.conflict = res.conflict
+			p.created = res.created
+			p.expires = res.expires
+			p.key = res.key
+			p.value = res.value
 			p.cookieWriteTime = res.cookieWriteTime
 		}
 	}

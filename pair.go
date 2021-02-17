@@ -18,12 +18,18 @@ package swift
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 	"time"
 )
 
+var pairListSeparator = "\r\n" // Used to separate values in a list
+
 const (
-	conflictOldest = iota
-	conflictNewest = iota
+	conflictInvalid = iota // Used to ensure the byte has been initialised
+	conflictOldest  = iota
+	conflictNewest  = iota
+	conflictAdd     = iota
 )
 
 // An empty pair referenced in the resolveConflict method if both parameters are
@@ -54,10 +60,14 @@ func (p *pair) Expires() time.Time { return p.expires }
 // Conflict returns conflict policy as a string. Used with HTML templates.
 func (p *pair) Conflict() string {
 	switch p.conflict {
+	case conflictInvalid:
+		return "invalid"
 	case conflictNewest:
 		return "newest"
 	case conflictOldest:
 		return "oldest"
+	case conflictAdd:
+		return "add"
 	}
 	return ""
 }
@@ -119,6 +129,41 @@ func (p *pair) isValid() bool {
 	return p.expires.After(time.Now().UTC())
 }
 
+// Merges the values that are contains in each of the pairs.
+func mergeValues(o *pair, c *pair) string {
+	v := strings.Split(o.value, pairListSeparator)
+	for _, a := range strings.Split(c.value, pairListSeparator) {
+		f := false
+		for _, b := range v {
+			if a == b {
+				f = true
+				break
+			}
+		}
+		if f == false {
+			v = append(v, a)
+		}
+	}
+	return strings.TrimSpace(strings.Join(v, pairListSeparator))
+}
+
+func mergePairs(o *pair, c *pair) *pair {
+	if o.value != c.value {
+		var n pair
+		n.conflict = conflictAdd
+		n.created = time.Now().UTC()
+		if o.expires.After(c.expires) {
+			n.expires = o.expires
+		} else {
+			n.expires = c.expires
+		}
+		n.key = o.key
+		n.value = mergeValues(o, c)
+		return &n
+	}
+	return c
+}
+
 func resolveConflictOldest(o *pair, c *pair) *pair {
 	if o.created.Before(c.created) {
 		return o
@@ -149,27 +194,31 @@ func resolveConflictNewest(o *pair, c *pair) *pair {
 // for the next operation in the storage operation.
 // o is the pair from the storage operation
 // c is the pair stored in a cookie for the current node
-func resolveConflict(o *pair, c *pair) *pair {
+func resolveConflict(o *pair, c *pair) (*pair, error) {
 	var p *pair
 	if o == nil && c == nil {
 		// Neither has any information.
 		p = &emptyValue
 	} else if o != nil && c == nil {
-		// A is the only valid pair.
+		// o is the only valid pair.
 		p = o
 	} else if o == nil && c != nil {
-		// B is the only valid pair.
+		// c is the only valid pair.
 		p = c
 	} else {
-		// Resolve any conflict using A's conflict flag.
+		// Resolve any conflict using o's conflict flag.
 		switch o.conflict {
+		case conflictInvalid:
+			return nil, fmt.Errorf("Conflict flag is not initialized")
 		case conflictNewest:
 			p = resolveConflictNewest(o, c)
 		case conflictOldest:
 			p = resolveConflictOldest(o, c)
+		case conflictAdd:
+			p = mergePairs(o, c)
 		default:
 			p = o
 		}
 	}
-	return p
+	return p, nil
 }
