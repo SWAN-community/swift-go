@@ -151,6 +151,9 @@ func createURL(s *Services, r *http.Request) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if ru.Host == "" {
+		return "", fmt.Errorf("Missing host from URL '%s'", ru)
+	}
 	if ru.Scheme == "" {
 		return "", fmt.Errorf("Missing scheme from URL '%s'", ru)
 	}
