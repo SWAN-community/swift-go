@@ -32,12 +32,12 @@ func newVolatileTest() (*Volatile, error) {
 	return v, nil
 }
 
-func (v *Volatile) testAddStorage(index int) (*node, error) {
+func (v *Volatile) testAddStorage(index int) (*Node, error) {
 	s, err := newSecret()
 	if err != nil {
 		return nil, err
 	}
-	n := node{
+	n := Node{
 		"network",
 		fmt.Sprintf("test-%d.com", index),
 		0,

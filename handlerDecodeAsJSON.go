@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -30,13 +31,7 @@ import (
 func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		err := r.ParseForm()
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
-			return
-		}
-
-		// Check caller can access
+		// Check caller can access and parse the form variables.
 		if s.getAccessAllowed(w, r) == false {
 			returnAPIError(s, w,
 				errors.New("Not authorized"),
@@ -45,65 +40,51 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 		}
 
 		// Get the node associated with the request.
-		n, err := getAccessNode(s, r)
+		n, err := s.GetAccessNodeForHost(r.Host)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
 		}
 
 		// Decode the query string to form the byte array.
-		in, err := base64.RawURLEncoding.DecodeString(r.Form.Get("data"))
+		d, err := base64.RawURLEncoding.DecodeString(r.Form.Get("data"))
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
-		// Decrypt the byte array using the node.
-		d, err := n.decrypt(in)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
-			return
-		}
-		if d == nil {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("Could not decrypt input"),
-				http.StatusBadRequest)
-			return
-		}
-
-		// Decode the byte array to become a results array.
-		a, err := DecodeResults(d)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
-			return
-		}
-
-		// Validate that the timestamp has not expired.
-		if a.IsTimeStampValid() == false {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("Results expired and can no longer be decrypted"),
-				http.StatusBadRequest)
-			return
-		}
-
-		// Turn the array into a JSON string.
-		json, err := json.Marshal(a.Values)
+		// Decrypt and decode the data into a Results.
+		v, err := n.DecryptAndDecode(d)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
 		}
 
-		// The output is a json string.
-		b := []byte(json)
+		// Validate that the timestamp has not expired.
+		if v.IsTimeStampValid() == false {
+			returnAPIError(
+				s,
+				w,
+				fmt.Errorf("data expired and can no longer be used"),
+				http.StatusBadRequest)
+			return
+		}
+
+		// Turn the Results into a JSON string.
+		j, err := json.Marshal(v)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusInternalServerError)
+			return
+		}
+
+		// Send the JSON string.
+		g := gzip.NewWriter(w)
+		defer g.Close()
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
-		_, err = w.Write(b)
+		w.Header().Set("Content-Encoding", "gzip")
+		_, err = g.Write(j)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 		}

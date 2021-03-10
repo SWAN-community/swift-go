@@ -48,14 +48,42 @@ func NewServices(
 // Config returns the configuration service.
 func (s *Services) Config() *Configuration { return &s.config }
 
-// GetAccessNode returns an access node for the network.
-func (s *Services) GetAccessNode(network string) (string, error) {
+// GetAccessNodeForNetwork returns an access node for the network.
+func (s *Services) GetAccessNodeForNetwork(network string) (string, error) {
 	return s.store.GetAccessNode(network)
 }
 
-// Returns true if the request is allowed to access the handler, otherwise false.
-// If false is returned then no further action is needed as the method will have
-// responded to the request already.
+// GetAccessNodeForHost returns the access node, if there is one, for the host
+// name provided. If the host does not exist then an error is returned. If the
+// host exists, but is not an access node then an error is returned.
+// h is the internet domain of the SWIFT access node host
+func (s *Services) GetAccessNodeForHost(h string) (*Node, error) {
+	return s.getNodeFromRequest(h, roleAccess)
+}
+
+func (s *Services) getStorageNode(r *http.Request) (*Node, error) {
+	return s.getNodeFromRequest(r.Host, roleStorage)
+}
+
+func (s *Services) getNodeFromRequest(h string, q int) (*Node, error) {
+
+	// Get the node associated with the request.
+	n, err := s.store.getNode(h)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify that this node is the right type.
+	if n.role != q {
+		return nil, fmt.Errorf("Node '%s' incorrect type", n.domain)
+	}
+
+	return n, nil
+}
+
+// Returns true if the request is allowed to access the handler, otherwise
+// false. If false is returned then no further action is needed as the method
+// will have responded to the request already.
 func (s *Services) getAccessAllowed(
 	w http.ResponseWriter,
 	r *http.Request) bool {

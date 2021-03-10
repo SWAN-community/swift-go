@@ -70,27 +70,3 @@ func returnServerError(s *Services, w http.ResponseWriter, err error) {
 		println(err.Error())
 	}
 }
-
-func getStorageNode(s *Services, r *http.Request) (*node, error) {
-	return getNodeFromRequest(s, r, roleStorage)
-}
-
-func getAccessNode(s *Services, r *http.Request) (*node, error) {
-	return getNodeFromRequest(s, r, roleAccess)
-}
-
-func getNodeFromRequest(s *Services, r *http.Request, q int) (*node, error) {
-
-	// Get the node associated with the request.
-	n, err := s.store.getNode(r.Host)
-	if err != nil {
-		return nil, err
-	}
-
-	// Verify that this node is the right type.
-	if n.role != q {
-		return nil, fmt.Errorf("Node '%s' incorrect type", n.domain)
-	}
-
-	return n, nil
-}

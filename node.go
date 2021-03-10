@@ -31,7 +31,8 @@ const (
 	roleStorage = iota // The node can be used for storage operations
 )
 
-type node struct {
+// Node is a SWIFT storage node associated with a network and a domain name.
+type Node struct {
 	network   string    // The name of the network the node belongs to
 	domain    string    // The domain name associated with the node
 	hash      uint32    // Number used to relate client IPs to node
@@ -44,7 +45,8 @@ type node struct {
 	alive     bool      // True if the node is reachable via a HTTP request
 }
 
-func (n *node) Domain() string { return n.domain }
+// Domain returns the internet domain associated with the Node.
+func (n *Node) Domain() string { return n.domain }
 
 func newNode(
 	network string,
@@ -52,14 +54,14 @@ func newNode(
 	created time.Time,
 	expires time.Time,
 	role int,
-	scrambleKey string) (*node, error) {
+	scrambleKey string) (*Node, error) {
 	h := fnv.New32a()
 	h.Write([]byte(domain))
 	s, err := newSecretFromKey(scrambleKey, created)
 	if err != nil {
 		return nil, err
 	}
-	n := node{
+	n := Node{
 		network,
 		domain,
 		h.Sum32(),
@@ -86,11 +88,11 @@ func makeNonce(s *secret, d []byte) []byte {
 	return n
 }
 
-func (n *node) isActive() bool {
+func (n *Node) isActive() bool {
 	return n.expires.After(time.Now().UTC()) && len(n.secrets) > 0
 }
 
-func (n *node) unscramble(s string) (string, error) {
+func (n *Node) unscramble(s string) (string, error) {
 	b, err := base64.RawURLEncoding.DecodeString(s)
 	if err != nil {
 		return "", err
@@ -102,12 +104,12 @@ func (n *node) unscramble(s string) (string, error) {
 	return string(d), err
 }
 
-func (n *node) scramble(s string) string {
+func (n *Node) scramble(s string) string {
 	return base64.RawURLEncoding.EncodeToString(
 		n.scrambler.crypto.encryptWithNonce([]byte(s), n.nonce))
 }
 
-func (n *node) encrypt(d []byte) ([]byte, error) {
+func (n *Node) encrypt(d []byte) ([]byte, error) {
 	s, err := n.getSecret()
 	if err != nil {
 		return nil, err
@@ -115,7 +117,10 @@ func (n *node) encrypt(d []byte) ([]byte, error) {
 	return s.crypto.compressAndEncrypt(d)
 }
 
-func (n *node) decrypt(d []byte) ([]byte, error) {
+// Decrypt takes the byte array and decrypts the results ready to be used by the
+// swift.DecodeResults method.
+// d encrypted byte array
+func (n *Node) Decrypt(d []byte) ([]byte, error) {
 	var err error
 	for _, s := range n.secrets {
 		b, err := s.crypto.decryptAndDecompress(d)
@@ -126,13 +131,35 @@ func (n *node) decrypt(d []byte) ([]byte, error) {
 	return nil, err
 }
 
-func (n *node) getValueFromCookie(c *http.Cookie) (*pair, error) {
+// DecryptAndDecode takes the byte array, decrypts it and decodes it into a Results
+// structure checking that the time stamp is valid.
+func (n *Node) DecryptAndDecode(d []byte) (*Results, error) {
+
+	// Decrypt the byte array using the node.
+	b, err := n.Decrypt(d)
+	if err != nil {
+		return nil, err
+	}
+	if b == nil {
+		return nil, fmt.Errorf("Could not decrypt byte array")
+	}
+
+	// Decode the byte array to become a results array.
+	r, err := DecodeResults(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func (n *Node) getValueFromCookie(c *http.Cookie) (*pair, error) {
 	var p pair
 	v, err := base64.RawURLEncoding.DecodeString(c.Value)
 	if err != nil {
 		return nil, err
 	}
-	d, err := n.decrypt(v)
+	d, err := n.Decrypt(v)
 	if err != nil {
 		return nil, err
 	}
@@ -154,11 +181,11 @@ func (n *node) getValueFromCookie(c *http.Cookie) (*pair, error) {
 	return &p, nil
 }
 
-func (n *node) addSecret(secret *secret) {
+func (n *Node) addSecret(secret *secret) {
 	n.secrets = append(n.secrets, secret)
 }
 
-func (n *node) getSecret() (*secret, error) {
+func (n *Node) getSecret() (*secret, error) {
 	if n == nil {
 		fmt.Println("Null node")
 	}
@@ -168,7 +195,7 @@ func (n *node) getSecret() (*secret, error) {
 	return nil, fmt.Errorf("No secrets for node '%s'", n.domain)
 }
 
-func (n *node) sortSecrets() {
+func (n *Node) sortSecrets() {
 	sort.Slice(n.secrets, func(i, j int) bool {
 		return n.secrets[i].timeStamp.Sub(n.secrets[j].timeStamp) < 0
 	})

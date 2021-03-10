@@ -283,7 +283,7 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (a *AWS) getNode(domain string) (*node, error) {
+func (a *AWS) getNode(domain string) (*Node, error) {
 	n, err := a.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func (a *AWS) getNodes(network string) (*nodes, error) {
 }
 
 // SetNode inserts or updates the node.
-func (a *AWS) setNode(node *node) error {
+func (a *AWS) setNode(node *Node) error {
 	err := a.setNodeSecrets(node)
 	if err != nil {
 		return err
@@ -366,7 +366,7 @@ func (a *AWS) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*node)
+			net.dict = make(map[string]*Node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -388,9 +388,9 @@ func (a *AWS) refresh() error {
 	return nil
 }
 
-func (a *AWS) fetchNodes() (map[string]*node, error) {
+func (a *AWS) fetchNodes() (map[string]*Node, error) {
 	var err error
-	ns := make(map[string]*node)
+	ns := make(map[string]*Node)
 
 	// Fetch all the records from the nodes table in Dynamo.
 	params := &dynamodb.ScanInput{
@@ -431,7 +431,7 @@ func (a *AWS) fetchNodes() (map[string]*node, error) {
 	return ns, err
 }
 
-func (a *AWS) addSecrets(ns map[string]*node) error {
+func (a *AWS) addSecrets(ns map[string]*Node) error {
 
 	// Fetch all the records from the secrets table in DynamoDB.
 	params := &dynamodb.ScanInput{
@@ -473,7 +473,7 @@ func (a *AWS) addSecrets(ns map[string]*node) error {
 	return nil
 }
 
-func (a *AWS) setNodeSecrets(node *node) error {
+func (a *AWS) setNodeSecrets(node *Node) error {
 	var pi []*dynamodb.WriteRequest
 
 	for _, s := range node.secrets {

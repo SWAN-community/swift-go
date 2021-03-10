@@ -57,7 +57,7 @@ func NewFirebase(project string) (*Firebase, error) {
 	return &f, nil
 }
 
-func (a *Firebase) getNode(domain string) (*node, error) {
+func (a *Firebase) getNode(domain string) (*Node, error) {
 	n, err := a.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func (a *Firebase) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
-func (f *Firebase) setNode(node *node) error {
+func (f *Firebase) setNode(node *Node) error {
 	err := f.setNodeSecrets(node)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (a *Firebase) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*node)
+			net.dict = make(map[string]*Node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -144,7 +144,7 @@ func (a *Firebase) refresh() error {
 	return nil
 }
 
-func (f *Firebase) addSecrets(ns map[string]*node) error {
+func (f *Firebase) addSecrets(ns map[string]*Node) error {
 	ctx := context.Background()
 	iter := f.client.Collection(secretsTableName).Documents(ctx)
 	for {
@@ -174,8 +174,8 @@ func (f *Firebase) addSecrets(ns map[string]*node) error {
 	return nil
 }
 
-func (f *Firebase) fetchNodes() (map[string]*node, error) {
-	ns := make(map[string]*node)
+func (f *Firebase) fetchNodes() (map[string]*Node, error) {
+	ns := make(map[string]*Node)
 	ctx := context.Background()
 
 	iter := f.client.Collection(nodesTableName).Documents(ctx)
@@ -203,7 +203,7 @@ func (f *Firebase) fetchNodes() (map[string]*node, error) {
 	return ns, nil
 }
 
-func (f *Firebase) setNodeSecrets(node *node) error {
+func (f *Firebase) setNodeSecrets(node *Node) error {
 	ctx := context.Background()
 	for _, s := range node.secrets {
 

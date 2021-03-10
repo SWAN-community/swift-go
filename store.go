@@ -40,13 +40,13 @@ type Store interface {
 
 	// GetNode takes a domain name and returns the associated node. If a node
 	// does not exist then nil is returned.
-	getNode(domain string) (*node, error)
+	getNode(domain string) (*Node, error)
 
 	// GetNodes returns all the nodes associated with a network.
 	getNodes(network string) (*nodes, error)
 
 	// SetNode inserts or updates the node.
-	setNode(node *node) error
+	setNode(node *Node) error
 }
 
 // NewStore returns a work implementation of the Store interface for the

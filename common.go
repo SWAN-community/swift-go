@@ -24,13 +24,13 @@ import (
 // common is a partial implementation of sws.Store for use with other more
 // complex implementations, and the test methods.
 type common struct {
-	nodes    map[string]*node  // Map of domain names to nodes
+	nodes    map[string]*Node  // Map of domain names to nodes
 	networks map[string]*nodes // Map of network names to nodes
 	mutex    *sync.Mutex       // mutual-exclusion lock used for refresh
 }
 
 func (c *common) init() {
-	c.nodes = make(map[string]*node)
+	c.nodes = make(map[string]*Node)
 	c.networks = make(map[string]*nodes)
 	c.mutex = &sync.Mutex{}
 }
@@ -45,7 +45,7 @@ func (c *common) GetAccessNode(network string) (string, error) {
 	if nodes == nil {
 		return "", fmt.Errorf("No access nodes for network '%s'", network)
 	}
-	node := nodes.getRandomNode(func(n *node) bool {
+	node := nodes.getRandomNode(func(n *Node) bool {
 		return n.role == roleAccess
 	})
 	if node == nil {
@@ -56,7 +56,7 @@ func (c *common) GetAccessNode(network string) (string, error) {
 
 // getNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (c *common) getNode(domain string) (*node, error) {
+func (c *common) getNode(domain string) (*Node, error) {
 	return c.nodes[domain], nil
 }
 

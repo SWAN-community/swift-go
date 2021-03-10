@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"compress/gzip"
 	"encoding/base64"
 	"fmt"
 	"html/template"
@@ -63,7 +64,7 @@ func HandlerStore(
 			// If no node is set then find a random storage node that is not the
 			// home node.
 			if o.nextNode == nil {
-				o.nextNode = o.network.getRandomNode(func(i *node) bool {
+				o.nextNode = o.network.getRandomNode(func(i *Node) bool {
 					return i.role == roleStorage && i != o.HomeNode()
 				})
 			}
@@ -186,9 +187,12 @@ func (o *operation) storeReturn(
 		return
 	}
 
+	g := gzip.NewWriter(w)
+	defer g.Close()
+	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	err = t.Execute(w, o)
+	err = t.Execute(g, o)
 	if err != nil {
 		returnServerError(s, w, err)
 	}

@@ -27,7 +27,7 @@ func newVolatile() *Volatile {
 	return &v
 }
 
-func (v Volatile) getNode(domain string) (*node, error) {
+func (v Volatile) getNode(domain string) (*Node, error) {
 	return v.common.getNode(domain)
 }
 
@@ -35,7 +35,7 @@ func (v Volatile) getNodes(network string) (*nodes, error) {
 	return v.common.getNodes(network)
 }
 
-func (v Volatile) setNode(n *node) error {
+func (v Volatile) setNode(n *Node) error {
 	var net *nodes
 	v.nodes[n.domain] = n
 	net = v.networks[n.network]

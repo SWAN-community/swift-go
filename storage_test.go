@@ -23,8 +23,8 @@ import (
 
 func TestStorageCommon(t *testing.T) {
 	var err error
-	var an *node
-	var bn *node
+	var an *Node
+	var bn *Node
 	s, err := newVolatileTest()
 	if err != nil {
 		fmt.Println(err)

@@ -44,9 +44,9 @@ type operation struct {
 	// The following fields are calculated for each request. Not stored.
 	services    *Services     // The services used for the operation
 	nextURL     *url.URL      // The next URL to navigate to
-	thisNode    *node         // The node that is processing the operation
-	nextNode    *node         // The next node in the operation
-	homeNodePtr *node         // The pointer to the home node
+	thisNode    *Node         // The node that is processing the operation
+	nextNode    *Node         // The next node in the operation
+	homeNodePtr *Node         // The pointer to the home node
 	network     *nodes        // The nodes that form the operation network
 	request     *http.Request // Http request associated with the operation
 
@@ -71,7 +71,7 @@ func (o *operation) Values() []*pair         { return o.values }
 
 // HomeNode returns the home node for the web browser. Used to ensure that the
 // first and last operation occur against a consistent node for the web browser.
-func (o *operation) HomeNode() *node {
+func (o *operation) HomeNode() *Node {
 	if o.homeNodePtr == nil {
 		if o.homeNode != "" {
 			o.homeNodePtr, _ = o.services.store.getNode(o.homeNode)
@@ -105,7 +105,7 @@ func (o *operation) SVGPath() string {
 	return svgPath(o.PercentageComplete())
 }
 
-func newOperation(s *Services, n *node) *operation {
+func newOperation(s *Services, n *Node) *operation {
 	var o operation
 	o.services = s
 	o.timeStamp = time.Now().UTC()
@@ -113,7 +113,7 @@ func newOperation(s *Services, n *node) *operation {
 	return &o
 }
 
-func newOperationFromByteArray(s *Services, n *node, b []byte) (*operation, error) {
+func newOperationFromByteArray(s *Services, n *Node, b []byte) (*operation, error) {
 	o := newOperation(s, n)
 	err := o.setFromByteArray(b)
 	if err != nil {
@@ -122,12 +122,12 @@ func newOperationFromByteArray(s *Services, n *node, b []byte) (*operation, erro
 	return o, err
 }
 
-func newOperationFromString(s *Services, n *node, v string) (*operation, error) {
+func newOperationFromString(s *Services, n *Node, v string) (*operation, error) {
 	b, err := base64.RawURLEncoding.DecodeString(v)
 	if err != nil {
 		return nil, err
 	}
-	d, err := n.decrypt(b)
+	d, err := n.Decrypt(b)
 	if err != nil {
 		return nil, err
 	}

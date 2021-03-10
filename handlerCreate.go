@@ -38,7 +38,7 @@ const (
 	tableParam           = "table"
 	xforwarededfor       = "X-FORWARDED-FOR"
 	remoteAddr           = "remoteAddr"
-	bounces              = "bounces"
+	count                = "bounces"
 	stateParam           = "state"
 	accessKey            = "accessKey"
 )
@@ -60,7 +60,7 @@ func init() {
 func HandlerCreate(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// Check caller can access
+		// Check caller can access and parse the form variables.
 		if s.getAccessAllowed(w, r) == false {
 			returnAPIError(s, w,
 				errors.New("Not authorized"),
@@ -68,11 +68,14 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 			return
 		}
 
-		u, err := createURL(s, r)
+		// Create the URL from the form parameters.
+		u, err := Create(s, r.Host, r.Form)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
+
+		// Return the URL.
 		b := []byte(u)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
@@ -94,15 +97,20 @@ func SetHomeNodeHeaders(r *http.Request, q *url.Values) {
 	q.Set("remoteAddr", r.RemoteAddr)
 }
 
-func createURL(s *Services, r *http.Request) (string, error) {
+// Create creates a storage operation URL from the parameters passed to the
+// method for the node associated with the host.
+// s an instance of swift.Services
+// h the name of the SWIFT internet domain
+// q the form paramters to be used to create the storage operation URL
+func Create(s *Services, h string, q url.Values) (string, error) {
 
 	// Get the node associated with the request.
-	a, err := s.store.getNode(r.Host)
+	a, err := s.store.getNode(h)
 	if err != nil {
 		return "", err
 	}
 	if a == nil {
-		return "", fmt.Errorf("Host '%s' is not a Swift node", r.Host)
+		return "", fmt.Errorf("Host '%s' is not a SWIFT node", h)
 	}
 
 	// If the node is not an access node then return an error.
@@ -123,31 +131,26 @@ func createURL(s *Services, r *http.Request) (string, error) {
 	// to decrypt the data in the return url.
 	o.accessNode = a.domain
 
-	// Add the parameters to the operation.
-	err = r.ParseForm()
-	if err != nil {
-		return "", err
-	}
-
-	// Set the node count.
-	if r.Form.Get(bounces) != "" {
-		c, err := strconv.Atoi(r.Form.Get(bounces))
+	// Set the number of SWIFT nodes that should be used for the operation.
+	if q.Get(count) != "" {
+		c, err := strconv.Atoi(q.Get(count))
 		if err != nil {
 			return "", err
 		}
 		if c <= 0 {
-			return "", fmt.Errorf("Bounces must be greater than 0")
+			return "", fmt.Errorf("SWIFT node count must be greater than 0")
 		} else if c < 255 {
 			o.nodeCount = byte(c)
 		} else {
-			return "", fmt.Errorf("Bounces '%d' must be less than 255", c)
+			return "", fmt.Errorf(
+				"SWIFT node count '%d' must be less than 255", c)
 		}
 	} else {
 		o.nodeCount = s.config.NodeCount
 	}
 
 	// Set the return URL that will have the encrypted data appended to it.
-	ru, err := url.Parse(r.Form.Get(returnURLParam))
+	ru, err := url.Parse(q.Get(returnURLParam))
 	if err != nil {
 		return "", err
 	}
@@ -160,17 +163,17 @@ func createURL(s *Services, r *http.Request) (string, error) {
 	o.returnURL = ru.String()
 
 	// Set any state information if provided.
-	o.state = r.Form.Get(stateParam)
+	o.state = q.Get(stateParam)
 
 	// Set the table that will be used for the storage of the key value
 	// pairs.
-	o.table = r.Form.Get(tableParam)
+	o.table = q.Get(tableParam)
 	if o.table == "" {
 		return "", fmt.Errorf("Missing table name")
 	}
 
 	// Set the browser warning probability if provided.
-	b, err := strconv.ParseFloat(r.Form.Get(browserWarningParam), 32)
+	b, err := strconv.ParseFloat(q.Get(browserWarningParam), 32)
 	if err == nil {
 		// Set the browser warning probability to the value provided by the
 		// the caller.
@@ -180,32 +183,32 @@ func createURL(s *Services, r *http.Request) (string, error) {
 		o.browserWarning = 0
 	}
 
-	// Set the user interface parameters from the optional parameters
-	// provided or from the configuration if node provided and the defaults
-	// should be used.
-	o.HTML.Title = r.Form.Get(titleParam)
+	// Set the user interface parameters from the optional parameters provided
+	// or from the configuration if node provided and the defaults should be
+	// used.
+	o.HTML.Title = q.Get(titleParam)
 	if o.HTML.Title == "" {
 		o.HTML.Title = s.config.Title
 	}
-	o.HTML.Message = r.Form.Get(messageParam)
+	o.HTML.Message = q.Get(messageParam)
 	if o.HTML.Message == "" {
 		o.HTML.Message = s.config.Message
 	}
-	o.HTML.MessageColor = r.Form.Get(messageColorParam)
+	o.HTML.MessageColor = q.Get(messageColorParam)
 	if o.HTML.MessageColor == "" {
 		o.HTML.MessageColor = s.config.MessageColor
 	}
-	o.HTML.BackgroundColor = r.Form.Get(backgroundColorParam)
+	o.HTML.BackgroundColor = q.Get(backgroundColorParam)
 	if o.HTML.BackgroundColor == "" {
 		o.HTML.BackgroundColor = s.config.BackgroundColor
 	}
-	o.HTML.ProgressColor = r.Form.Get(progressColorParam)
+	o.HTML.ProgressColor = q.Get(progressColorParam)
 	if o.HTML.ProgressColor == "" {
 		o.HTML.ProgressColor = s.config.ProgressColor
 	}
 
 	// Add the key value pairs from the form parameters.
-	for k, v := range r.Form {
+	for k, v := range q {
 		if isReserved(k) == false && len(v) > 0 {
 			p, err := createPair(k, v[0])
 			if err != nil {
@@ -220,15 +223,9 @@ func createURL(s *Services, r *http.Request) (string, error) {
 	}
 
 	// For this network and request find the home node.
-	xff := r.Form.Get(xforwarededfor)
-	if xff == "" {
-		xff = r.Header.Get("X-FORWARDED-FOR")
-	}
-	ra := r.Form.Get(remoteAddr)
-	if ra == "" {
-		ra = r.RemoteAddr
-	}
-	o.nextNode, err = o.network.getHomeNode(xff, ra)
+	o.nextNode, err = o.network.getHomeNode(
+		q.Get(xforwarededfor),
+		q.Get(remoteAddr))
 	if err != nil {
 		return "", err
 	}
@@ -308,7 +305,7 @@ func isReserved(s string) bool {
 		s == browserWarningParam ||
 		s == xforwarededfor ||
 		s == remoteAddr ||
-		s == bounces ||
+		s == count ||
 		s == stateParam ||
 		s == accessKey
 }

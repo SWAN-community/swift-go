@@ -35,7 +35,7 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 		}
 
 		// Get the node associated with the request.
-		n, err := getAccessNode(s, r)
+		n, err := s.GetAccessNodeForHost(r.Host)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return

@@ -25,7 +25,7 @@ import (
 func TestNodesHashOrder(t *testing.T) {
 	ns := newNodes()
 	for i := 0; i < 100; i++ {
-		var n *node
+		var n *Node
 		s, err := newSecret()
 		if err != nil {
 			fmt.Println(err)

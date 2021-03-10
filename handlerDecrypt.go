@@ -29,7 +29,7 @@ import (
 func HandlerDecrypt(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// Check caller can access
+		// Check caller can access and parse the form variables.
 		if s.getAccessAllowed(w, r) == false {
 			returnAPIError(s, w,
 				errors.New("Not authorized"),
@@ -37,14 +37,8 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 			return
 		}
 
-		err := r.ParseForm()
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
-			return
-		}
-
 		// Get the node associated with the request.
-		n, err := getAccessNode(s, r)
+		n, err := s.GetAccessNodeForHost(r.Host)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
@@ -58,7 +52,7 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 		}
 
 		// Decrypt the byte array using the node.
-		d, err := n.decrypt(in)
+		d, err := n.Decrypt(in)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return

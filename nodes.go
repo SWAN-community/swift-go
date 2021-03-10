@@ -25,22 +25,22 @@ import (
 )
 
 type nodes struct {
-	all    []*node          // All the nodes in a random order
-	active []*node          // Active nodes ordered by creation time
-	hash   []*node          // Active nodes ordered by hash value
-	dict   map[string]*node // All the nodes keyed on domain name
+	all    []*Node          // All the nodes in a random order
+	active []*Node          // Active nodes ordered by creation time
+	hash   []*Node          // Active storage nodes ordered by hash value
+	dict   map[string]*Node // All the nodes keyed on domain name
 }
 
 func newNodes() *nodes {
 	var ns nodes
-	ns.all = []*node{}
-	ns.active = []*node{}
-	ns.hash = []*node{}
-	ns.dict = make(map[string]*node)
+	ns.all = []*Node{}
+	ns.active = []*Node{}
+	ns.hash = []*Node{}
+	ns.dict = make(map[string]*Node)
 	return &ns
 }
 
-func (ns *nodes) getRandomNode(condition func(n *node) bool) *node {
+func (ns *nodes) getRandomNode(condition func(n *Node) bool) *Node {
 	indexes := make([]int, len(ns.active))
 	for i := 0; i < len(ns.active); i++ {
 		indexes[i] = i
@@ -93,7 +93,7 @@ func getRemoteAddr(xff string, ra string) string {
 }
 
 // Find the node that has a hash value closest to that of the remote IP address.
-func (ns *nodes) getHomeNode(xff string, ra string) (*node, error) {
+func (ns *nodes) getHomeNode(xff string, ra string) (*Node, error) {
 	i := ns.getNodeIndexByHash(getRemoteAddrHash(xff, ra))
 	if i < 0 || i >= len(ns.hash) {
 		return nil, fmt.Errorf(
@@ -127,10 +127,12 @@ func (ns *nodes) order() {
 	ns.hash = getHashOrdered(ns.active)
 }
 
-func getHashOrdered(all []*node) []*node {
-	h := make([]*node, 0, len(all))
-	for _, n := range all {
-		h = append(h, n)
+func getHashOrdered(active []*Node) []*Node {
+	h := make([]*Node, 0, len(active))
+	for _, n := range active {
+		if n.role == roleStorage {
+			h = append(h, n)
+		}
 	}
 	sort.Slice(h, func(i, j int) bool {
 		return h[i].hash < h[j].hash
@@ -138,8 +140,8 @@ func getHashOrdered(all []*node) []*node {
 	return h
 }
 
-func getActiveOrdered(all []*node) []*node {
-	a := make([]*node, 0, len(all))
+func getActiveOrdered(all []*Node) []*Node {
+	a := make([]*Node, 0, len(all))
 	for _, n := range all {
 		if n.isActive() {
 			a = append(a, n)

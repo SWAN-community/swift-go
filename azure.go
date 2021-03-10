@@ -62,7 +62,7 @@ func NewAzure(account string, accessKey string) (*Azure, error) {
 	return &a, nil
 }
 
-func (a *Azure) getNode(domain string) (*node, error) {
+func (a *Azure) getNode(domain string) (*Node, error) {
 	n, err := a.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (a *Azure) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
-func (a *Azure) setNode(node *node) error {
+func (a *Azure) setNode(node *Node) error {
 	err := a.setNodeSecrets(node)
 	if err != nil {
 		return err
@@ -138,7 +138,7 @@ func (a *Azure) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*node)
+			net.dict = make(map[string]*Node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -160,7 +160,7 @@ func (a *Azure) refresh() error {
 	return nil
 }
 
-func (a *Azure) addSecrets(ns map[string]*node) error {
+func (a *Azure) addSecrets(ns map[string]*Node) error {
 
 	// Fetch all the records from the secrets table in Azure.
 	e, err := a.secretsTable.QueryEntities(
@@ -190,9 +190,9 @@ func (a *Azure) addSecrets(ns map[string]*node) error {
 	return nil
 }
 
-func (a *Azure) fetchNodes() (map[string]*node, error) {
+func (a *Azure) fetchNodes() (map[string]*Node, error) {
 	var err error
-	ns := make(map[string]*node)
+	ns := make(map[string]*Node)
 
 	// Fetch all the records from the nodes table in Azure.
 	e, err := a.nodesTable.QueryEntities(
@@ -221,7 +221,7 @@ func (a *Azure) fetchNodes() (map[string]*node, error) {
 	return ns, err
 }
 
-func (a *Azure) setNodeSecrets(node *node) error {
+func (a *Azure) setNodeSecrets(node *Node) error {
 	for _, s := range node.secrets {
 		e := a.secretsTable.GetEntityReference(node.domain, s.key)
 		e.TimeStamp = s.timeStamp
