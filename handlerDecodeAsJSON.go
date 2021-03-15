@@ -80,10 +80,10 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 		// Send the JSON string.
 		g := gzip.NewWriter(w)
 		defer g.Close()
+		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Encoding", "gzip")
 		_, err = g.Write(j)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)

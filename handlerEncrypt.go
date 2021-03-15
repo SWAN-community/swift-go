@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"compress/gzip"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -27,6 +28,9 @@ import (
 // URL.
 func HandlerEncrypt(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		// No access control is needed here. All access nodes can encrypt data.
+		// Access keys are needed to decrypt the data.
 
 		err := r.ParseForm()
 		if err != nil {
@@ -56,13 +60,15 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 		}
 
 		// The output is a binary array.
+		g := gzip.NewWriter(w)
+		defer g.Close()
+		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(out)))
 
 		// Write the encrypted byte array to the output stream.
-		c, err := w.Write(out)
+		c, err := g.Write(out)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return

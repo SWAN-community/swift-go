@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"log"
@@ -40,7 +41,6 @@ const (
 	remoteAddr           = "remoteAddr"
 	count                = "bounces"
 	stateParam           = "state"
-	accessKey            = "accessKey"
 )
 
 // Used to determine the storage character from the key to use for the
@@ -76,11 +76,12 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 		}
 
 		// Return the URL.
-		b := []byte(u)
+		g := gzip.NewWriter(w)
+		defer g.Close()
+		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
-		_, err = w.Write(b)
+		_, err = g.Write([]byte(u))
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
@@ -127,26 +128,16 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 		return "", err
 	}
 
-	// Set the access node domain so that the end operation can be called
-	// to decrypt the data in the return url.
-	o.accessNode = a.domain
+	// Set the access node for the operation.
+	setAccessNode(o, &q, a)
 
-	// Set the number of SWIFT nodes that should be used for the operation.
-	if q.Get(count) != "" {
-		c, err := strconv.Atoi(q.Get(count))
-		if err != nil {
-			return "", err
-		}
-		if c <= 0 {
-			return "", fmt.Errorf("SWIFT node count must be greater than 0")
-		} else if c < 255 {
-			o.nodeCount = byte(c)
-		} else {
-			return "", fmt.Errorf(
-				"SWIFT node count '%d' must be less than 255", c)
-		}
-	} else {
-		o.nodeCount = s.config.NodeCount
+	// Set any state information if provided.
+	o.state = q[stateParam]
+
+	// Set the number of SWIFT nodes to use for the operation.
+	err = setCount(o, &q, s)
+	if err != nil {
+		return "", err
 	}
 
 	// Set the return URL that will have the encrypted data appended to it.
@@ -161,9 +152,6 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 		return "", fmt.Errorf("Missing scheme from URL '%s'", ru)
 	}
 	o.returnURL = ru.String()
-
-	// Set any state information if provided.
-	o.state = q.Get(stateParam)
 
 	// Set the table that will be used for the storage of the key value
 	// pairs.
@@ -294,6 +282,40 @@ func createPair(k string, v string) (*pair, error) {
 	return &p, err
 }
 
+// Set the access node domain so that the end operation can be called
+// to decrypt the data in the return url. If no access node is provided
+// then the default one will be used. The access node is not valid for
+// other purposes so remove it from the parameters.
+func setAccessNode(o *operation, q *url.Values, a *Node) {
+	if q.Get("accessNode") == "" {
+		o.accessNode = a.domain
+	} else {
+		o.accessNode = q.Get("accessNode")
+	}
+	q.Del("accessNode")
+}
+
+// Set the number of SWIFT nodes that should be used for the operation.
+func setCount(o *operation, q *url.Values, s *Services) error {
+	if q.Get(count) != "" {
+		c, err := strconv.Atoi(q.Get(count))
+		if err != nil {
+			return err
+		}
+		if c <= 0 {
+			return fmt.Errorf("SWIFT node count must be greater than 0")
+		} else if c < 255 {
+			o.nodeCount = byte(c)
+		} else {
+			return fmt.Errorf(
+				"SWIFT node count '%d' must be less than 255", c)
+		}
+	} else {
+		o.nodeCount = s.config.NodeCount
+	}
+	return nil
+}
+
 func isReserved(s string) bool {
 	return s == titleParam ||
 		s == messageParam ||
@@ -306,6 +328,5 @@ func isReserved(s string) bool {
 		s == xforwarededfor ||
 		s == remoteAddr ||
 		s == count ||
-		s == stateParam ||
-		s == accessKey
+		s == stateParam
 }

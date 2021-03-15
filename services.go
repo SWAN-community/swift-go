@@ -82,8 +82,9 @@ func (s *Services) getNodeFromRequest(h string, q int) (*Node, error) {
 }
 
 // Returns true if the request is allowed to access the handler, otherwise
-// false. If false is returned then no further action is needed as the method
-// will have responded to the request already.
+// false. Removes the accessKey parameter from the form to prevent it being
+// used by other methods.  If false is returned then no further action is
+// needed as the method will have responded to the request already.
 func (s *Services) getAccessAllowed(
 	w http.ResponseWriter,
 	r *http.Request) bool {
@@ -101,5 +102,6 @@ func (s *Services) getAccessAllowed(
 			http.StatusNetworkAuthenticationRequired)
 		return false
 	}
+	r.Form.Del("accessKey")
 	return true
 }

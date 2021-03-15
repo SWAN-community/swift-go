@@ -19,8 +19,12 @@ package swift
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"time"
 )
+
+// Character used to separate state elements.
+const resultSeparator = "\r"
 
 // Result from a storage operation.
 type Result struct {
@@ -33,9 +37,9 @@ type Result struct {
 // Results from a storage operation.
 type Results struct {
 	Expires time.Time // The time after which the data can not be decrypted
-	State   string    // Optional state information
 	Values  []*Result // Array of values
 	HTML              // Include the common HTML UI members.
+	State   []string  // Optional state information
 }
 
 // Get returns the result for the key provided, or nil if the key does not
@@ -66,10 +70,11 @@ func DecodeResults(d []byte) (*Results, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.State, err = readString(b)
+	s, err := readString(b)
 	if err != nil {
 		return nil, err
 	}
+	r.State = strings.Split(s, resultSeparator)
 	err = r.HTML.set(b)
 	if err != nil {
 		return nil, err
@@ -107,7 +112,7 @@ func encodeResults(r *Results) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, r.State)
+	err = writeString(&b, strings.Join(r.State, resultSeparator))
 	if err != nil {
 		return nil, err
 	}

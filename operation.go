@@ -39,7 +39,7 @@ type operation struct {
 	values         []*pair   // Values of the data being stored
 	table          string    // The table to store the key value pairs in
 	homeNode       string    // The domain of the home node
-	state          string    // Optional state information
+	state          []string  // Optional state information
 
 	// The following fields are calculated for each request. Not stored.
 	services    *Services     // The services used for the operation
@@ -81,10 +81,6 @@ func (o *operation) HomeNode() *Node {
 		}
 	}
 	return o.homeNodePtr
-}
-
-func (o *operation) ReturnOrigin() string {
-	return o.returnURL
 }
 
 func (o *operation) IsTimeStampValid() bool {
@@ -272,7 +268,7 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, o.state)
+	err = writeString(&b, strings.Join(o.state, resultSeparator))
 	if err != nil {
 		return nil, err
 	}
@@ -323,10 +319,11 @@ func (o *operation) setFromByteArray(d []byte) error {
 	if err != nil {
 		return err
 	}
-	o.state, err = readString(b)
+	s, err := readString(b)
 	if err != nil {
 		return err
 	}
+	o.state = strings.Split(s, resultSeparator)
 	c, err := readByte(b)
 	if err != nil {
 		return err

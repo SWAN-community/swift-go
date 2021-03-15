@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"compress/gzip"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -67,11 +68,13 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 		}
 
 		// The output as a byte array.
+		g := gzip.NewWriter(w)
+		defer g.Close()
+		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(d)))
-		_, err = w.Write(d)
+		_, err = g.Write(d)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 		}

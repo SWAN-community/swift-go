@@ -169,9 +169,10 @@ func (o *operation) storeReturn(
 	t *template.Template) {
 	var err error
 	nu := o.returnURL
-	if o.IsTimeStampValid() {
-		// The time stamp is valid so add the data to the end of the
-		// url.
+	if o.IsTimeStampValid() && o.accessNode != "" {
+
+		// The time stamp is valid, and there is an access node, so add the data
+		// to the end of the url.
 		x, err := o.getResults()
 		if err != nil {
 			returnServerError(s, w, err)
@@ -223,9 +224,12 @@ func (o *operation) storeContinue(
 				o.nextURL.Host))
 	}
 
+	g := gzip.NewWriter(w)
+	defer g.Close()
+	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	err = progressTemplate.Execute(w, o)
+	err = progressTemplate.Execute(g, o)
 	if err != nil {
 		returnServerError(s, w, err)
 	}
@@ -258,11 +262,10 @@ func (o *operation) getResults() (string, error) {
 	}
 
 	// Encrypt the result with the access node.
-	u, err := url.Parse(
-		o.services.config.Scheme + "://" + o.accessNode + "/swift/api/v1/encrypt")
-	if err != nil {
-		return "", err
-	}
+	var u url.URL
+	u.Scheme = o.services.config.Scheme
+	u.Host = o.accessNode
+	u.Path = "/swift/api/v1/encrypt"
 	q := u.Query()
 	q.Set("data", base64.RawURLEncoding.EncodeToString(out))
 	u.RawQuery = q.Encode()
@@ -285,20 +288,18 @@ func (o *operation) getNextURL() (*url.URL, error) {
 	if o.nextNode == nil {
 		return nil, fmt.Errorf("Next node must be set")
 	}
-
 	p, err := o.asURLParameter()
 	if err != nil {
 		return nil, err
 	}
-	u, err := url.Parse(fmt.Sprintf("%s://%s/%s/%s",
-		o.services.config.Scheme,
-		o.nextNode.domain,
-		o.nextNode.scramble(o.table),
-		p))
+	var u url.URL
+	u.Scheme = o.services.config.Scheme
+	u.Host = o.nextNode.domain
+	u.Path = o.nextNode.scramble(o.table) + "/" + p
 	if err != nil {
 		return nil, err
 	}
-	return u, nil
+	return &u, nil
 }
 
 func (o *operation) asURLParameter() (string, error) {
