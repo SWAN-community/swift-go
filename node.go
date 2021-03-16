@@ -48,6 +48,9 @@ type Node struct {
 // Domain returns the internet domain associated with the Node.
 func (n *Node) Domain() string { return n.domain }
 
+// Network returns the network names associated with the Node.
+func (n *Node) Network() string { return n.network }
+
 func newNode(
 	network string,
 	domain string,
