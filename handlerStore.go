@@ -126,10 +126,13 @@ func storeMalformed(s *Services, w http.ResponseWriter, r *http.Request) {
 	var o operation
 	o.HTML.BackgroundColor = s.config.BackgroundColor
 	o.HTML.MessageColor = s.config.MessageColor
+	g := gzip.NewWriter(w)
+	defer g.Close()
+	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusBadRequest)
-	err := malformedTemplate.Execute(w, &o)
+	err := malformedTemplate.Execute(g, &o)
 	if err != nil {
 		returnServerError(s, w, err)
 	}
@@ -154,9 +157,12 @@ func (o *operation) storeWarning(
 		return
 	}
 
+	g := gzip.NewWriter(w)
+	defer g.Close()
+	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	err = warningTemplate.Execute(w, o)
+	err = warningTemplate.Execute(g, o)
 	if err != nil {
 		returnServerError(s, w, err)
 	}
@@ -345,26 +351,35 @@ func (o *operation) processCookies(
 // processCookie determines if the cookie value contained in c should be used
 // OR if the operational data in p should be used. The cookie is then updated
 // with the value selected.
+// w the http response writer
+// r the http request
+// o the storage operation
+// op the current key value pair for the storage operation
+// c the cookie related to the key of p the contains value for this storage node
 func processCookie(
 	w http.ResponseWriter,
 	r *http.Request,
 	o *operation,
-	p *pair,
+	op *pair,
 	c *http.Cookie) error {
 
+	// op = operation pair
+	// cp = cookie pair
+	// rp = resolved pair - the pair after conflict resolution
+
 	// Decrypt the cookie value, and continue if valid.
-	v, err := o.thisNode.getValueFromCookie(c)
+	cp, err := o.thisNode.getValueFromCookie(c)
 	if err != nil {
 
 		// The current cookie is invalid and can't be used. Set the cookie to
 		// the operations value.
-		o.setValueInCookie(w, r, p)
+		o.setValueInCookie(w, r, op)
 
 	} else {
 
 		// Resolve the conflict between the operation's value and the one found
 		// in the cookie.
-		res, err := resolveConflict(p, v)
+		rp, err := resolveConflict(op, cp)
 		if err != nil {
 			return err
 		}
@@ -373,20 +388,20 @@ func processCookie(
 		// value is not changing the pair.cookieWriteTime field needs to be
 		// updated to indicate to subsequent operations when the data was last
 		// current.
-		err = o.setValueInCookie(w, r, res)
+		err = o.setValueInCookie(w, r, rp)
 		if err != nil {
 			return err
 		}
 
 		// If the a pair other than the operational pair was chosen then update
 		// the operational pair.
-		if res != p {
-			p.conflict = res.conflict
-			p.created = res.created
-			p.expires = res.expires
-			p.key = res.key
-			p.value = res.value
-			p.cookieWriteTime = res.cookieWriteTime
+		if rp != op {
+			op.conflict = rp.conflict
+			op.created = rp.created
+			op.expires = rp.expires
+			op.key = rp.key
+			op.value = rp.value
+			op.cookieWriteTime = rp.cookieWriteTime
 		}
 	}
 
