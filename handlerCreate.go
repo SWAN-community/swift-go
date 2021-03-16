@@ -129,7 +129,10 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 	}
 
 	// Set the access node for the operation.
-	setAccessNode(o, &q, a)
+	err = setAccessNode(s, o, &q, a)
+	if err != nil {
+		return "", err
+	}
 
 	// Set any state information if provided.
 	o.state = q[stateParam]
@@ -282,17 +285,28 @@ func createPair(k string, v string) (*pair, error) {
 	return &p, err
 }
 
-// Set the access node domain so that the end operation can be called
-// to decrypt the data in the return url. If no access node is provided
-// then the default one will be used. The access node is not valid for
+// Set the access node domain so that the end operation can be called to decrypt
+// the data in the return url. Verify that the access node provided is a valid
+// access node in the store. This prevents spoof access nodes being provided by
+// bad actors attempting to gain access to the network. If no access node is
+// provided then the default one will be used. The access node is not valid for
 // other purposes so remove it from the parameters.
-func setAccessNode(o *operation, q *url.Values, a *Node) {
-	if q.Get("accessNode") == "" {
+func setAccessNode(s *Services, o *operation, q *url.Values, a *Node) error {
+	v := q.Get("accessNode")
+	if v == "" {
 		o.accessNode = a.domain
 	} else {
-		o.accessNode = q.Get("accessNode")
+		n, err := s.store.getNode(v)
+		if err != nil {
+			return err
+		}
+		if n == nil {
+			return fmt.Errorf("'%s' is not a valid access node", v)
+		}
+		o.accessNode = n.domain
 	}
 	q.Del("accessNode")
+	return nil
 }
 
 // Set the number of SWIFT nodes that should be used for the operation.
