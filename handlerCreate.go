@@ -303,6 +303,12 @@ func setAccessNode(s *Services, o *operation, q *url.Values, a *Node) error {
 		if n == nil {
 			return fmt.Errorf("'%s' is not a valid access node", v)
 		}
+		if a.network != n.network {
+			return fmt.Errorf(
+				"'%s' is node a valid access node for network '%s'",
+				v,
+				a.network)
+		}
 		o.accessNode = n.domain
 	}
 	q.Del("accessNode")
