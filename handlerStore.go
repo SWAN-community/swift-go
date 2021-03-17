@@ -124,6 +124,7 @@ func HandlerStore(
 // The operation is invalid return a malformed request.
 func storeMalformed(s *Services, w http.ResponseWriter, r *http.Request) {
 	var o operation
+	o.request = r
 	o.HTML.BackgroundColor = s.config.BackgroundColor
 	o.HTML.MessageColor = s.config.MessageColor
 	g := gzip.NewWriter(w)

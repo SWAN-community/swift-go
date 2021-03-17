@@ -23,7 +23,7 @@ import (
 
 var progressTemplate = newHTMLTemplate("progress", `
 <!DOCTYPE html>
-<html>
+<html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
 	<title>{{.Title}}</title>
@@ -104,7 +104,7 @@ var progressTemplate = newHTMLTemplate("progress", `
 
 var blankTemplate = newHTMLTemplate("blank", `
 <!DOCTYPE html>
-<html>
+<html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
 	<link rel="icon" href="data:;base64,=">
@@ -116,7 +116,7 @@ var blankTemplate = newHTMLTemplate("blank", `
 
 var malformedTemplate = newHTMLTemplate("malformed", `
 <!DOCTYPE html>
-<html>
+<html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
 	<title>Bad Request</title>
@@ -152,7 +152,7 @@ var malformedTemplate = newHTMLTemplate("malformed", `
 
 var registerTemplate = newHTMLTemplate("register", `
 <!DOCTYPE html>
-<html>
+<html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
 	<title>Shared Web State - Register Node</title>
@@ -249,7 +249,7 @@ var registerTemplate = newHTMLTemplate("register", `
 
 var warningTemplate = newHTMLTemplate("warning", `
 <!DOCTYPE html>
-<html>
+<html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
 	<title>{{.Title}}</title>

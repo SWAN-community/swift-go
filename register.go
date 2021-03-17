@@ -16,7 +16,10 @@
 
 package swift
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // Register contains HTML template data used to register a node with the network
 type Register struct {
@@ -31,9 +34,19 @@ type Register struct {
 	RoleError     string
 	ReadOnly      bool
 	DisplayErrors bool
+	request       *http.Request
 }
 
 // ExpiresString returns the expires date as a string
 func (r *Register) ExpiresString() string {
 	return r.Expires.Format("2006-01-02")
+}
+
+// Language returns the language code associated with the web page.
+func (r *Register) Language() string {
+	v := r.request.Header.Get("accept-language")
+	if v != "" {
+		return languageRegex.FindString(v)
+	}
+	return ""
 }

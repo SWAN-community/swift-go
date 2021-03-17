@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -53,6 +54,13 @@ type operation struct {
 	HTML // Include the common HTML UI members.
 }
 
+// Regular expression to get the language string.
+var languageRegex *regexp.Regexp
+
+func init() {
+	languageRegex, _ = regexp.Compile("[^;,]+")
+}
+
 func (o *operation) TimeStamp() time.Time    { return o.timeStamp }
 func (o *operation) Title() string           { return o.HTML.Title }
 func (o *operation) Message() string         { return o.HTML.Message }
@@ -68,6 +76,15 @@ func (o *operation) Debug() bool             { return o.services.config.Debug }
 func (o *operation) SVGStroke() int          { return svgStroke }
 func (o *operation) SVGSize() int            { return svgSize }
 func (o *operation) Values() []*pair         { return o.values }
+
+// Language returns the language code associated with the web page.
+func (o *operation) Language() string {
+	v := o.request.Header.Get("accept-language")
+	if v != "" {
+		return languageRegex.FindString(v)
+	}
+	return ""
+}
 
 // HomeNode returns the home node for the web browser. Used to ensure that the
 // first and last operation occur against a consistent node for the web browser.

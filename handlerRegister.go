@@ -31,6 +31,7 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var d Register
+		d.request = r
 		d.Services = s
 		d.Domain = r.Host
 		d.Network = ""
