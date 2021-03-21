@@ -93,7 +93,7 @@ func HandlerStore(
 			// If this is the first node and all the cookies are valid then
 			// there is no need to continue bouncing.
 			if o.nodesVisited <= 1 && o.getCookiesValid() {
-				o.storeReturn(s, w, r, blankTemplate)
+				o.storeComplete(s, w, r)
 			} else {
 				o.storeContinue(s, w, r)
 			}
@@ -114,7 +114,7 @@ func HandlerStore(
 			if o.getCookiesPresent() == false {
 				o.storeWarning(s, w, r)
 			} else {
-				o.storeReturn(s, w, r, progressTemplate)
+				o.storeComplete(s, w, r)
 			}
 		}
 
@@ -169,6 +169,43 @@ func (o *operation) storeWarning(
 	}
 }
 
+// If the post on complete flag is set then use the JavaScript post on complete
+// template. If not then use the blank template for the return.
+func (o *operation) storeComplete(
+	s *Services,
+	w http.ResponseWriter,
+	r *http.Request) {
+	if o.PostMessageOnComplete() {
+		o.storePostMessage(s, w, r, postMessageTemplate)
+	} else {
+		if o.DisplayUserInterface() {
+			if o.nodesVisited <= 1 {
+				o.storeReturn(s, w, r, blankTemplate)
+			} else {
+				o.storeReturn(s, w, r, progressTemplate)
+			}
+		} else {
+			o.storeReturn(s, w, r, blankTemplate)
+		}
+	}
+}
+
+func (o *operation) storePostMessage(
+	s *Services,
+	w http.ResponseWriter,
+	r *http.Request,
+	t *template.Template) {
+	g := gzip.NewWriter(w)
+	defer g.Close()
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	err := t.Execute(g, o)
+	if err != nil {
+		returnServerError(s, w, err)
+	}
+}
+
 func (o *operation) storeReturn(
 	s *Services,
 	w http.ResponseWriter,
@@ -176,17 +213,14 @@ func (o *operation) storeReturn(
 	t *template.Template) {
 	var err error
 	nu := o.returnURL
-	if o.IsTimeStampValid() && o.accessNode != "" {
 
-		// The time stamp is valid, and there is an access node, so add the data
-		// to the end of the url.
-		x, err := o.getResults()
-		if err != nil {
-			returnServerError(s, w, err)
-			return
-		}
-		nu += x
+	// Get the results to append to the end of the return URL.
+	x, err := o.Results()
+	if err != nil {
+		returnServerError(s, w, err)
+		return
 	}
+	nu += x
 
 	// Turn the next URL string into a url.URL value.
 	o.nextURL, err = url.Parse(nu)
@@ -236,7 +270,11 @@ func (o *operation) storeContinue(
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	err = progressTemplate.Execute(g, o)
+	if o.DisplayUserInterface() {
+		err = progressTemplate.Execute(g, o)
+	} else {
+		err = blankTemplate.Execute(g, o)
+	}
 	if err != nil {
 		returnServerError(s, w, err)
 	}
@@ -254,7 +292,7 @@ func (o *operation) getResults() (string, error) {
 
 	// Add the expiry time for the results.
 	r.Expires = time.Now().UTC().Add(
-		time.Second * o.services.config.BundleTimeout)
+		time.Second * o.services.config.StorageOperationTimeout)
 
 	// Add other state information from the storage operation.
 	r.State = o.state

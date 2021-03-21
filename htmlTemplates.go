@@ -316,6 +316,20 @@ var warningTemplate = newHTMLTemplate("warning", `
 </body>
 </html>`)
 
+var postMessageTemplate = newHTMLTemplate("postMessage", `
+<!DOCTYPE html>
+<html lang="{{.Language}}">
+<head>
+	<meta charset="utf-8" />
+	<link rel="icon" href="data:;base64,=">
+</head>
+<body style="background-color: {{.BackgroundColor}}">
+	<script>
+		window.opener.postMessage("{{.Results}}","{{.ReturnURL}}");
+	</script>
+</body>
+</html>`)
+
 func newHTMLTemplate(n string, h string) *template.Template {
 	c := removeHTMLWhiteSpace(h)
 	return template.Must(template.New(n).Parse(c))

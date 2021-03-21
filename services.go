@@ -48,17 +48,28 @@ func NewServices(
 // Config returns the configuration service.
 func (s *Services) Config() *Configuration { return &s.config }
 
-// GetAccessNodeForNetwork returns an access node for the network.
-func (s *Services) GetAccessNodeForNetwork(network string) (string, error) {
-	return s.store.GetAccessNode(network)
-}
-
 // GetAccessNodeForHost returns the access node, if there is one, for the host
 // name provided. If the host does not exist then an error is returned. If the
 // host exists, but is not an access node then an error is returned.
 // h is the internet domain of the SWIFT access node host
 func (s *Services) GetAccessNodeForHost(h string) (*Node, error) {
 	return s.getNodeFromRequest(h, roleAccess)
+}
+
+// GetHomeNode returns the home node for the web browser associated with the
+// access node processing the request. If the current request is not to an
+// access node then an error will be returned.
+func (s *Services) GetHomeNode(r *http.Request) (*Node, error) {
+	q := r.Form
+	h, err := s.GetAccessNodeForHost(r.Host)
+	if err != nil {
+		return nil, err
+	}
+	n, err := s.store.getNodes(h.network)
+	if err != nil {
+		return nil, err
+	}
+	return n.getHomeNode(q.Get(xforwarededfor), q.Get(remoteAddr))
 }
 
 func (s *Services) getStorageNode(r *http.Request) (*Node, error) {

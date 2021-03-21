@@ -29,18 +29,20 @@ import (
 )
 
 const (
-	browserWarningParam  = "browserWarning"
-	titleParam           = "title"
-	messageParam         = "message"
-	returnURLParam       = "returnUrl"
-	progressColorParam   = "progressColor"
-	backgroundColorParam = "backgroundColor"
-	messageColorParam    = "messageColor"
-	tableParam           = "table"
-	xforwarededfor       = "X-FORWARDED-FOR"
-	remoteAddr           = "remoteAddr"
-	count                = "bounces"
-	stateParam           = "state"
+	browserWarningParam        = "browserWarning"
+	titleParam                 = "title"
+	messageParam               = "message"
+	returnURLParam             = "returnUrl"
+	progressColorParam         = "progressColor"
+	backgroundColorParam       = "backgroundColor"
+	messageColorParam          = "messageColor"
+	tableParam                 = "table"
+	xforwarededfor             = "X-FORWARDED-FOR"
+	remoteAddr                 = "remoteAddr"
+	count                      = "bounces"
+	stateParam                 = "state"
+	displayUserInterfaceParam  = "displayUserInterface"
+	postMessageOnCompleteParam = "postMessageOnComplete"
 )
 
 // Used to determine the storage character from the key to use for the
@@ -143,7 +145,14 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 		return "", err
 	}
 
-	// Set the return URL that will have the encrypted data appended to it.
+	// Check the flag for the posting of a message on completion rather than
+	// using the return URL.
+	if q.Get(postMessageOnCompleteParam) == "true" {
+		o.SetPostMessageOnComplete(true)
+	}
+
+	// Set the return URL to use when posting the message or to redirect the
+	// browser to with the encrypted SWAN data appended.
 	ru, err := url.Parse(q.Get(returnURLParam))
 	if err != nil {
 		return "", err
@@ -162,6 +171,9 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 	if o.table == "" {
 		return "", fmt.Errorf("Missing table name")
 	}
+
+	// Check the flag for the display of the user interface.
+	o.SetDisplayUserInterface(q.Get(displayUserInterfaceParam) != "false")
 
 	// Set the browser warning probability if provided.
 	b, err := strconv.ParseFloat(q.Get(browserWarningParam), 32)
@@ -348,5 +360,7 @@ func isReserved(s string) bool {
 		s == xforwarededfor ||
 		s == remoteAddr ||
 		s == count ||
-		s == stateParam
+		s == stateParam ||
+		s == displayUserInterfaceParam ||
+		s == postMessageOnCompleteParam
 }

@@ -28,6 +28,13 @@ import (
 	"time"
 )
 
+// Constants for the bits in operation.flags where the constant name corresponds
+// to the public method of operation.
+const (
+	flagDisplayUserInterface  = iota
+	flagPostMessageOnComplete = iota
+)
+
 type operation struct {
 
 	// Internal persisted state fields.
@@ -40,6 +47,7 @@ type operation struct {
 	values         []*pair   // Values of the data being stored
 	table          string    // The table to store the key value pairs in
 	homeNode       string    // The domain of the home node
+	flags          byte      // Bit flags
 	state          []string  // Optional state information
 
 	// The following fields are calculated for each request. Not stored.
@@ -77,6 +85,17 @@ func (o *operation) SVGStroke() int          { return svgStroke }
 func (o *operation) SVGSize() int            { return svgSize }
 func (o *operation) Values() []*pair         { return o.values }
 
+// Results of the operation to return to the caller.
+func (o *operation) Results() (string, error) {
+	if o.IsTimeStampValid() == false {
+		return "", fmt.Errorf("Operation timestamp invalid")
+	}
+	if o.accessNode == "" {
+		return "", fmt.Errorf("No access node provided")
+	}
+	return o.getResults()
+}
+
 // Language returns the language code associated with the web page.
 func (o *operation) Language() string {
 	v := o.request.Header.Get("accept-language")
@@ -100,11 +119,15 @@ func (o *operation) HomeNode() *Node {
 	return o.homeNodePtr
 }
 
+// IsTimeStampValid true if the time is without the storage operation timeout,
+// otherwise false.
 func (o *operation) IsTimeStampValid() bool {
-	t := o.timeStamp.Add(time.Second * o.services.config.BundleTimeout)
+	t := o.timeStamp.Add(
+		time.Second * o.services.config.StorageOperationTimeout)
 	return time.Now().UTC().Before(t)
 }
 
+// PercentageComplete the progress as a percentage of the operation.
 func (o *operation) PercentageComplete() int {
 	var p float64
 	if o.nodeCount > 0 {
@@ -114,8 +137,41 @@ func (o *operation) PercentageComplete() int {
 	return int(p)
 }
 
+// SVGPath the path component of the SVG element.
 func (o *operation) SVGPath() string {
 	return svgPath(o.PercentageComplete())
+}
+
+// DisplayUserInterface true if a UI should be displayed during the storage
+// operation, otherwise false.
+func (o *operation) DisplayUserInterface() bool {
+	return o.hasBit(flagDisplayUserInterface)
+}
+
+// SetDisplayUserInterface sets the flag to true or false.
+func (o *operation) SetDisplayUserInterface(v bool) {
+	if v {
+		o.setBit(flagDisplayUserInterface)
+	} else {
+		o.clearBit(flagDisplayUserInterface)
+	}
+}
+
+// PostMessageOnComplete true if at the end of the operation the resulting data
+// should be returned to the parent using JavaScript postMessage, otherwise
+// false.
+// parent.postMessage("swan","[Encrypted SWAN data]");
+func (o *operation) PostMessageOnComplete() bool {
+	return o.hasBit(flagPostMessageOnComplete)
+}
+
+// SetPostMessageOnComplete sets the flag to true or false.
+func (o *operation) SetPostMessageOnComplete(v bool) {
+	if v {
+		o.setBit(flagPostMessageOnComplete)
+	} else {
+		o.clearBit(flagPostMessageOnComplete)
+	}
 }
 
 func newOperation(s *Services, n *Node) *operation {
@@ -285,6 +341,10 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = writeByte(&b, o.flags)
+	if err != nil {
+		return nil, err
+	}
 	err = writeString(&b, strings.Join(o.state, resultSeparator))
 	if err != nil {
 		return nil, err
@@ -336,6 +396,10 @@ func (o *operation) setFromByteArray(d []byte) error {
 	if err != nil {
 		return err
 	}
+	o.flags, err = readByte(b)
+	if err != nil {
+		return err
+	}
 	s, err := readString(b)
 	if err != nil {
 		return err
@@ -358,4 +422,19 @@ func (o *operation) setFromByteArray(d []byte) error {
 		err = fmt.Errorf("%d bytes remaining", len(r))
 	}
 	return err
+}
+
+func (o *operation) setBit(pos uint8) byte {
+	o.flags |= (1 << pos)
+	return o.flags
+}
+
+func (o *operation) clearBit(pos uint8) byte {
+	o.flags &= ^(1 << pos)
+	return o.flags
+}
+
+func (o *operation) hasBit(pos uint8) bool {
+	val := o.flags & (1 << pos)
+	return (val > 0)
 }

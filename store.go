@@ -35,9 +35,6 @@ const (
 // Store interface for persistent data shared across instances operated.
 type Store interface {
 
-	// GetAccessNode returns the access node for the network.
-	GetAccessNode(network string) (string, error)
-
 	// GetNode takes a domain name and returns the associated node. If a node
 	// does not exist then nil is returned.
 	getNode(domain string) (*Node, error)

@@ -18,7 +18,7 @@ package swift
 
 import "bytes"
 
-// HTML parameters that control the display of the user interface.
+// HTML parameters that control the function and display of the user interface.
 type HTML struct {
 	Title           string // Window title
 	Message         string // Message to display
