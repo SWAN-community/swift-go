@@ -18,6 +18,13 @@ package swift
 
 import "bytes"
 
+// Constants for the bits in operation.flags where the constant name corresponds
+// to the public method of operation.
+const (
+	flagDisplayUserInterface  = iota
+	flagPostMessageOnComplete = iota
+)
+
 // HTML parameters that control the function and display of the user interface.
 type HTML struct {
 	Title           string // Window title
@@ -25,6 +32,72 @@ type HTML struct {
 	BackgroundColor string // Background color of the window
 	MessageColor    string // Color of the message text
 	ProgressColor   string // Color of the progress line
+	flags           byte
+}
+
+// DisplayUserInterface true if a UI should be displayed during the storage
+// operation, otherwise false.
+func (h *HTML) DisplayUserInterface() bool {
+	return h.hasBit(flagDisplayUserInterface)
+}
+
+// DisplayUserInterfaceAsString returns the flag as string either "true" or
+// "false".
+func (h *HTML) DisplayUserInterfaceAsString() string {
+	if h.DisplayUserInterface() {
+		return "true"
+	}
+	return "false"
+}
+
+// SetDisplayUserInterface sets the flag to true or false.
+func (h *HTML) SetDisplayUserInterface(v bool) {
+	if v {
+		h.setBit(flagDisplayUserInterface)
+	} else {
+		h.clearBit(flagDisplayUserInterface)
+	}
+}
+
+// PostMessageOnComplete true if at the end of the operation the resulting data
+// should be returned to the parent using JavaScript postMessage, otherwise
+// false.
+// parent.postMessage("swan","[Encrypted SWAN data]");
+func (h *HTML) PostMessageOnComplete() bool {
+	return h.hasBit(flagPostMessageOnComplete)
+}
+
+// PostMessageOnCompleteAsString returns the flag as string either "true" or
+// "false".
+func (h *HTML) PostMessageOnCompleteAsString() string {
+	if h.PostMessageOnComplete() {
+		return "true"
+	}
+	return "false"
+}
+
+// SetPostMessageOnComplete sets the flag to true or false.
+func (h *HTML) SetPostMessageOnComplete(v bool) {
+	if v {
+		h.setBit(flagPostMessageOnComplete)
+	} else {
+		h.clearBit(flagPostMessageOnComplete)
+	}
+}
+
+func (h *HTML) setBit(pos uint8) byte {
+	h.flags |= (1 << pos)
+	return h.flags
+}
+
+func (h *HTML) clearBit(pos uint8) byte {
+	h.flags &= ^(1 << pos)
+	return h.flags
+}
+
+func (h *HTML) hasBit(pos uint8) bool {
+	val := h.flags & (1 << pos)
+	return (val > 0)
 }
 
 func (h *HTML) write(b *bytes.Buffer) error {
@@ -46,6 +119,10 @@ func (h *HTML) write(b *bytes.Buffer) error {
 		return err
 	}
 	err = writeString(b, h.ProgressColor)
+	if err != nil {
+		return err
+	}
+	err = writeByte(b, h.flags)
 	if err != nil {
 		return err
 	}
@@ -71,6 +148,10 @@ func (h *HTML) set(b *bytes.Buffer) error {
 		return err
 	}
 	h.ProgressColor, err = readString(b)
+	if err != nil {
+		return err
+	}
+	h.flags, err = readByte(b)
 	if err != nil {
 		return err
 	}

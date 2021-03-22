@@ -39,7 +39,7 @@ const (
 	tableParam                 = "table"
 	xforwarededfor             = "X-FORWARDED-FOR"
 	remoteAddr                 = "remoteAddr"
-	count                      = "bounces"
+	nodeCount                  = "nodeCount"
 	stateParam                 = "state"
 	displayUserInterfaceParam  = "displayUserInterface"
 	postMessageOnCompleteParam = "postMessageOnComplete"
@@ -329,8 +329,8 @@ func setAccessNode(s *Services, o *operation, q *url.Values, a *Node) error {
 
 // Set the number of SWIFT nodes that should be used for the operation.
 func setCount(o *operation, q *url.Values, s *Services) error {
-	if q.Get(count) != "" {
-		c, err := strconv.Atoi(q.Get(count))
+	if q.Get(nodeCount) != "" {
+		c, err := strconv.Atoi(q.Get(nodeCount))
 		if err != nil {
 			return err
 		}
@@ -359,7 +359,7 @@ func isReserved(s string) bool {
 		s == browserWarningParam ||
 		s == xforwarededfor ||
 		s == remoteAddr ||
-		s == count ||
+		s == nodeCount ||
 		s == stateParam ||
 		s == displayUserInterfaceParam ||
 		s == postMessageOnCompleteParam

@@ -107,11 +107,11 @@ func HandlerStore(
 				log.Println(err.Error())
 			}
 
-			// If this is the home node and the last operation then validate
-			// that cookies are available. If not then a warning will need to be
-			// shown and the next node will be the home node.
-			// Otherwise return to the returnURL.
-			if o.getCookiesPresent() == false {
+			// If this is the home node and the last operation of a multi node
+			// operation then validate that cookies are available. If not then a
+			// warning will need to be shown and the next node will be the home
+			// node. Otherwise return to the returnURL.
+			if o.getCookiesPresent() == false && o.nodeCount > 1 {
 				o.storeWarning(s, w, r)
 			} else {
 				o.storeComplete(s, w, r)
