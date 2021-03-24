@@ -1,4 +1,4 @@
-module github.com/51degrees/swift-go
+module github.com/SWAN-community/swift-go
 
 go 1.8
 
