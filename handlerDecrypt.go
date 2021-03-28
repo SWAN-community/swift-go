@@ -46,7 +46,7 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 		}
 
 		// Decode the query string to form the byte array.
-		in, err := base64.RawURLEncoding.DecodeString(r.Form.Get("data"))
+		in, err := base64.RawStdEncoding.DecodeString(r.Form.Get("data"))
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
@@ -71,7 +71,6 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 		g := gzip.NewWriter(w)
 		defer g.Close()
 		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		_, err = g.Write(d)

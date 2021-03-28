@@ -158,7 +158,7 @@ func (n *Node) DecryptAndDecode(d []byte) (*Results, error) {
 
 func (n *Node) getValueFromCookie(c *http.Cookie) (*pair, error) {
 	var p pair
-	v, err := base64.RawURLEncoding.DecodeString(c.Value)
+	v, err := base64.RawStdEncoding.DecodeString(c.Value)
 	if err != nil {
 		return nil, err
 	}

@@ -50,7 +50,6 @@ func returnAPIError(
 	w http.ResponseWriter,
 	err error,
 	code int) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	http.Error(w, err.Error(), code)

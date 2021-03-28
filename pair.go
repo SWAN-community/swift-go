@@ -18,12 +18,11 @@ package swift
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
 )
-
-var pairListSeparator = "\r\n" // Used to separate values in a list
 
 const (
 	conflictInvalid = iota // Used to ensure the byte has been initialised
@@ -36,26 +35,42 @@ const (
 // null.
 var emptyValue pair
 
+// Pair from a storage operation.
+type Pair struct {
+	key     string    // The name of the key associated with the value
+	created time.Time // The UTC time that the value was created
+	expires time.Time // The UTC time that the value will expire
+	values  [][]byte  // The values as byte arrays
+}
+
+// pair used internally and adds more information for the operation.
 type pair struct {
-	key             string    // The name of the key associated with the value
-	created         time.Time // The UTC time that the value was created
-	expires         time.Time // The UTC time that the value will expire
-	value           string    // The value as a string
+	Pair
 	conflict        byte      // Flag for conflict resolution
 	cookieWriteTime time.Time // Last time the cookie was written to
 }
 
-// Key returns the key as a string. Used with HTML templates.
-func (p *pair) Key() string { return p.key }
+// Key readonly accessor to the pair's key.
+func (p *Pair) Key() string { return p.key }
 
-// Value returns the value as string. Used with HTML templates.
-func (p *pair) Value() string { return p.value }
+// Created readonly accessor to the pair's created time.
+func (p *Pair) Created() time.Time { return p.created }
 
-// Created returns the date and pair was created. Used with HTML templates.
-func (p *pair) Created() time.Time { return p.created }
+// Expires readonly accessor to the pair's expiry time.
+func (p *Pair) Expires() time.Time { return p.expires }
 
-// Expires returns the date and pair will expire. Used with HTML templates.
-func (p *pair) Expires() time.Time { return p.expires }
+// Value readonly accessor to the pair's value.
+func (p *Pair) Values() [][]byte { return p.values }
+
+// Value returns the value as string. Used with HTML templates or JSON
+// serialization.
+func (p *Pair) Value() string {
+	var s = make([]string, len(p.values))
+	for i, v := range p.values {
+		s[i] = base64.RawStdEncoding.EncodeToString(v)
+	}
+	return strings.Join(s, "\r\n")
+}
 
 // Conflict returns conflict policy as a string. Used with HTML templates.
 func (p *pair) Conflict() string {
@@ -90,7 +105,7 @@ func (p *pair) setFromBuffer(b *bytes.Buffer) error {
 	if err != nil {
 		return err
 	}
-	p.value, err = readString(b)
+	p.values, err = readByteArrayArray(b)
 	if err != nil {
 		return err
 	}
@@ -114,7 +129,7 @@ func (p *pair) writeToBuffer(b *bytes.Buffer) error {
 	if err != nil {
 		return err
 	}
-	err = writeString(b, p.value)
+	err = writeByteArrayArray(b, p.values)
 	if err != nil {
 		return err
 	}
@@ -129,13 +144,25 @@ func (p *pair) isValid() bool {
 	return p.expires.After(time.Now().UTC())
 }
 
-// Merges the values that are contains in each of the pairs.
-func mergeValues(o *pair, c *pair) string {
-	v := strings.Split(o.value, pairListSeparator)
-	for _, a := range strings.Split(c.value, pairListSeparator) {
+// Performs a distinct merge of the values in the two pairs. Duplicates are
+// removed.
+func mergeValues(o *pair, c *pair) [][]byte {
+
+	// Make an array of values that has sufficient capacity to support all
+	// the values.
+	v := make([][]byte, 0, len(o.values)+len(c.values))
+
+	// Add the values from pair o. Assumes that o does not contain any
+	// duplicates.
+	for _, a := range o.values {
+		v = append(v, a)
+	}
+
+	// Add any values from pair c that are not in v.
+	for _, a := range c.values {
 		f := false
 		for _, b := range v {
-			if a == b {
+			if bytes.Equal(a, b) {
 				f = true
 				break
 			}
@@ -144,11 +171,11 @@ func mergeValues(o *pair, c *pair) string {
 			v = append(v, a)
 		}
 	}
-	return strings.TrimSpace(strings.Join(v, pairListSeparator))
+	return v
 }
 
 func mergePairs(o *pair, c *pair) *pair {
-	if o.value != c.value {
+	if valuesEqual(o.values, c.values) == false {
 		var n pair
 		n.conflict = conflictAdd
 		n.created = time.Now().UTC()
@@ -158,10 +185,22 @@ func mergePairs(o *pair, c *pair) *pair {
 			n.expires = c.expires
 		}
 		n.key = o.key
-		n.value = mergeValues(o, c)
+		n.values = mergeValues(o, c)
 		return &n
 	}
 	return c
+}
+
+func valuesEqual(a [][]byte, b [][]byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if bytes.Equal(a[i], b[i]) == false {
+			return false
+		}
+	}
+	return true
 }
 
 func resolveConflictOldest(o *pair, c *pair) *pair {

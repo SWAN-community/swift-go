@@ -18,6 +18,7 @@ package swift
 
 import (
 	"compress/gzip"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -264,7 +265,15 @@ func createPair(k string, v string) (*pair, error) {
 			"Key '%s' must contained only one '+', '<' or '>' character", k)
 	}
 
-	// Set how multipe values for the same key are handled.
+	// Turn the value into a byte array. If the value is a base 64 string then
+	// use the resulting byte array. If it is not a base 64 string then use the
+	// string value provided.
+	b, err := base64.RawStdEncoding.DecodeString(v)
+	if err != nil {
+		b = []byte(v)
+	}
+
+	// Set how multiple values for the same key are handled.
 	switch k[i[0]] {
 	case '+':
 		p.conflict = conflictAdd
@@ -293,7 +302,7 @@ func createPair(k string, v string) (*pair, error) {
 	// Complete the data for the pair.
 	p.created = time.Now().UTC()
 	p.key = k[:i[0]]
-	p.value = v
+	p.values = [][]byte{b}
 	return &p, err
 }
 

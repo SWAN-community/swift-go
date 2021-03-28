@@ -29,7 +29,7 @@ func TestPair(t *testing.T) {
 	a.key = "Test"
 	a.created = time.Now().UTC()
 	a.expires = time.Now().UTC()
-	a.value = "Hello World"
+	a.values = [][]byte{[]byte("Hello World")}
 	a.conflict = conflictNewest
 	var out bytes.Buffer
 	err := a.writeToBuffer(&out)
@@ -55,9 +55,9 @@ func TestPair(t *testing.T) {
 		fmt.Println(string(b.key))
 		t.Fail()
 	}
-	if string(a.value) != string(b.value) {
-		fmt.Println(string(a.value))
-		fmt.Println(string(b.value))
+	if string(a.values[0]) != string(b.values[0]) {
+		fmt.Println(string(a.values[0]))
+		fmt.Println(string(b.values[0]))
 		t.Fail()
 	}
 	testCompareDate(t, a.created, b.created)

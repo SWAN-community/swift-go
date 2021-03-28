@@ -216,9 +216,8 @@ func (o *operation) storeReturn(
 
 	// Get the results to append to the end of the return URL.
 	x, err := o.Results()
-	if err != nil {
-		returnServerError(s, w, err)
-		return
+	if err != nil && s.config.Debug == true {
+		log.Println(err.Error())
 	}
 	nu += x
 
@@ -285,17 +284,17 @@ func (o *operation) getResults() (string, error) {
 	// Build the results array of key value pairs.
 	var r Results
 	for _, p := range o.values {
-		r.Values = append(
-			r.Values,
-			&Result{p.key, p.created, p.expires, p.value})
+		r.pairs = append(
+			r.pairs,
+			&Pair{p.key, p.created, p.expires, p.values})
 	}
 
 	// Add the expiry time for the results.
-	r.Expires = time.Now().UTC().Add(
+	r.expires = time.Now().UTC().Add(
 		time.Second * o.services.config.StorageOperationTimeout)
 
 	// Add other state information from the storage operation.
-	r.State = o.state
+	r.state = o.state
 
 	// Add HTML user interface parameters from the storage operation.
 	r.HTML = o.HTML
@@ -311,11 +310,9 @@ func (o *operation) getResults() (string, error) {
 	u.Scheme = o.services.config.Scheme
 	u.Host = o.accessNode
 	u.Path = "/swift/api/v1/encrypt"
-	q := u.Query()
-	q.Set("data", base64.RawURLEncoding.EncodeToString(out))
-	u.RawQuery = q.Encode()
-
-	res, err := http.Get(u.String())
+	q := url.Values{}
+	q.Set("data", base64.RawStdEncoding.EncodeToString(out))
+	res, err := http.PostForm(u.String(), q)
 	if err != nil {
 		return "", err
 	}
@@ -439,7 +436,7 @@ func processCookie(
 			op.created = rp.created
 			op.expires = rp.expires
 			op.key = rp.key
-			op.value = rp.value
+			op.values = rp.values
 			op.cookieWriteTime = rp.cookieWriteTime
 		}
 	}
