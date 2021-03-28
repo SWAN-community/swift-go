@@ -311,7 +311,7 @@ func (o *operation) getResults() (string, error) {
 	u.Host = o.accessNode
 	u.Path = "/swift/api/v1/encrypt"
 	q := url.Values{}
-	q.Set("data", base64.RawStdEncoding.EncodeToString(out))
+	q.Set("plain", base64.RawStdEncoding.EncodeToString(out))
 	res, err := http.PostForm(u.String(), q)
 	if err != nil {
 		return "", err

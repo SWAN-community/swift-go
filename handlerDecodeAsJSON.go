@@ -47,7 +47,7 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 		}
 
 		// Decode the query string to form the byte array.
-		d, err := base64.RawStdEncoding.DecodeString(r.Form.Get("data"))
+		d, err := base64.RawStdEncoding.DecodeString(r.Form.Get("encrypted"))
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return

@@ -46,7 +46,7 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 		}
 
 		// Decode the query string to form the byte array.
-		in, err := base64.RawStdEncoding.DecodeString(r.Form.Get("data"))
+		in, err := base64.RawStdEncoding.DecodeString(r.Form.Get("plain"))
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
