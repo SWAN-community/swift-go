@@ -38,7 +38,7 @@ const (
 	backgroundColorParam       = "backgroundColor"
 	messageColorParam          = "messageColor"
 	tableParam                 = "table"
-	xforwarededfor             = "X-FORWARDED-FOR"
+	xforwarededfor             = "X-Forwarded-For"
 	remoteAddr                 = "remoteAddr"
 	nodeCount                  = "nodeCount"
 	stateParam                 = "state"
@@ -95,8 +95,10 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 // SetHomeNodeHeaders adds the HTTP headers from the request that are relevant
 // to the calculation of the home node to the values collection.
 func SetHomeNodeHeaders(r *http.Request, q *url.Values) {
-	if r.Header.Get("X-FORWARDED-FOR") != "" {
-		q.Set("X-FORWARDED-FOR", r.Header.Get("X-FORWARDED-FOR"))
+	x := r.Header.Get(xforwarededfor)
+	x = "109.249.187.121, 172.31.39.11"
+	if x != "" {
+		q.Set(xforwarededfor, x)
 	}
 	q.Set("remoteAddr", r.RemoteAddr)
 }

@@ -76,16 +76,16 @@ var regexClientIP, _ = regexp.Compile("[\\d\\.]+|\\[[^\\]]+\\]")
 // (for proxies) and falls back to use the remote address.
 func getRemoteAddr(xff string, ra string) string {
 	if xff != "" {
-		b := regexClientIP.Find([]byte(xff))
-		if b != nil {
-			return string(b)
+		b := regexClientIP.FindString(xff)
+		if b != "" {
+			return b
 		}
 		return xff
 	}
 	if ra != "" {
-		b := regexClientIP.Find([]byte(ra))
-		if b != nil {
-			return string(b)
+		b := regexClientIP.FindString(ra)
+		if b != "" {
+			return b
 		}
 		return ra
 	}
