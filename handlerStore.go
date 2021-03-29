@@ -62,11 +62,16 @@ func HandlerStore(
 			}
 
 			// If no node is set then find a random storage node that is not the
-			// home node.
+			// home node. Try 10 times before giving up.
 			if o.nextNode == nil {
-				o.nextNode = o.network.getRandomNode(func(i *Node) bool {
-					return i.role == roleStorage && i != o.HomeNode()
-				})
+				c := 10
+				for o.nextNode == nil && c > 0 {
+					o.nextNode = o.network.getRandomNode(func(i *Node) bool {
+						return i.role == roleStorage &&
+							i.domain != o.HomeNode().domain
+					})
+					c--
+				}
 			}
 
 			// If there is still no node them use the home node.
@@ -284,9 +289,7 @@ func (o *operation) getResults() (string, error) {
 	// Build the results array of key value pairs.
 	var r Results
 	for _, p := range o.values {
-		r.pairs = append(
-			r.pairs,
-			&Pair{p.key, p.created, p.expires, p.values})
+		r.pairs = append(r.pairs, &p.Pair)
 	}
 
 	// Add the expiry time for the results.
