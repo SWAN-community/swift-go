@@ -20,11 +20,15 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"hash/fnv"
+	"hash"
+	"hash/crc64"
 	"net/http"
 	"sort"
 	"time"
 )
+
+// Table used to initialize hash functions.
+var nodeHashTable = crc64.MakeTable(crc64.ECMA)
 
 const (
 	roleAccess  = iota // The node responds to server initiated access requests
@@ -35,7 +39,7 @@ const (
 type Node struct {
 	network   string    // The name of the network the node belongs to
 	domain    string    // The domain name associated with the node
-	hash      uint32    // Number used to relate client IPs to node
+	hash      uint64    // Number used to relate client IPs to node
 	created   time.Time // The time that the node first came online
 	expires   time.Time // The time that the node will retire from the network
 	role      int       // The role the node has in the network
@@ -51,6 +55,10 @@ func (n *Node) Domain() string { return n.domain }
 // Network returns the network names associated with the Node.
 func (n *Node) Network() string { return n.network }
 
+func newHash() hash.Hash64 {
+	return crc64.New(nodeHashTable)
+}
+
 func newNode(
 	network string,
 	domain string,
@@ -58,7 +66,7 @@ func newNode(
 	expires time.Time,
 	role int,
 	scrambleKey string) (*Node, error) {
-	h := fnv.New32a()
+	h := newHash()
 	h.Write([]byte(domain))
 	s, err := newSecretFromKey(scrambleKey, created)
 	if err != nil {
@@ -67,7 +75,7 @@ func newNode(
 	n := Node{
 		network,
 		domain,
-		h.Sum32(),
+		h.Sum64(),
 		created,
 		expires,
 		role,

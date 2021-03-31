@@ -18,7 +18,6 @@ package swift
 
 import (
 	"fmt"
-	"hash/fnv"
 	"math/rand"
 	"regexp"
 	"sort"
@@ -59,13 +58,13 @@ func (ns *nodes) getRandomNode(condition func(n *Node) bool) *Node {
 
 // Get the hash of the remote address for the request by removing the port if
 // present and using the domain or IP address.
-func getRemoteAddrHash(xff string, ra string) uint32 {
-	var a uint32
+func getRemoteAddrHash(xff string, ra string) uint64 {
+	var a uint64
 	d := getRemoteAddr(xff, ra)
 	if len(d) > 0 {
-		h := fnv.New32a()
+		h := newHash()
 		h.Write([]byte(d))
-		a = h.Sum32()
+		a = h.Sum64()
 	}
 	return a
 }
@@ -105,7 +104,7 @@ func (ns *nodes) getHomeNode(xff string, ra string) (*Node, error) {
 	return ns.hash[i], nil
 }
 
-func (ns *nodes) getNodeIndexByHash(h uint32) int {
+func (ns *nodes) getNodeIndexByHash(h uint64) int {
 	m := 0
 	l := 0
 	u := len(ns.hash) - 1
