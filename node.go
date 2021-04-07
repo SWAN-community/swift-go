@@ -20,8 +20,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"hash"
 	"hash/crc64"
+	"hash/fnv"
+	"math/rand"
 	"net/http"
 	"sort"
 	"time"
@@ -55,8 +56,10 @@ func (n *Node) Domain() string { return n.domain }
 // Network returns the network names associated with the Node.
 func (n *Node) Network() string { return n.network }
 
-func newHash() hash.Hash64 {
-	return crc64.New(nodeHashTable)
+func getHash(s string) uint64 {
+	h := fnv.New64a()
+	h.Write([]byte(s))
+	return rand.New(rand.NewSource(int64(h.Sum64()))).Uint64()
 }
 
 func newNode(
@@ -66,8 +69,6 @@ func newNode(
 	expires time.Time,
 	role int,
 	scrambleKey string) (*Node, error) {
-	h := newHash()
-	h.Write([]byte(domain))
 	s, err := newSecretFromKey(scrambleKey, created)
 	if err != nil {
 		return nil, err
@@ -75,7 +76,7 @@ func newNode(
 	n := Node{
 		network,
 		domain,
-		h.Sum64(),
+		getHash(domain),
 		created,
 		expires,
 		role,

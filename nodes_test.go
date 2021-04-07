@@ -23,6 +23,7 @@ import (
 	"time"
 )
 
+// TestNodesHashOrder confirms that the hashes appear in the correct order.
 func TestNodesHashOrder(t *testing.T) {
 	ns, err := createNodes()
 	if err != nil {
@@ -39,6 +40,43 @@ func TestNodesHashOrder(t *testing.T) {
 	}
 }
 
+// TestNodesHomeNodeMultiNetwork validates that two instances of nodes
+// collections return the same values for the same input data.
+func TestNodesHomeNodeMultiNetwork(t *testing.T) {
+	ns1, err := createNodes()
+	if err != nil {
+		fmt.Println(err)
+		t.Fail()
+		return
+	}
+	ns2, err := createNodes()
+	if err != nil {
+		fmt.Println(err)
+		t.Fail()
+		return
+	}
+	hn1, err := ns1.getHomeNode("212.36.33.158, 172.31.23.19", "127.0.0.1")
+	if err != nil {
+		fmt.Println(err)
+		t.Fail()
+		return
+	}
+	hn2, err := ns2.getHomeNode("212.36.33.158, 172.31.23.19", "127.0.0.1")
+	if err != nil {
+		fmt.Println(err)
+		t.Fail()
+		return
+	}
+	if hn1.domain != hn2.domain {
+		fmt.Println(hn1.domain)
+		fmt.Println(hn2.domain)
+		t.Fail()
+		return
+	}
+}
+
+// TestNodesHomeNode confirms that similar input data produces different
+// outputs.
 func TestNodesHomeNode(t *testing.T) {
 	ns, err := createNodes()
 	if err != nil {
@@ -46,22 +84,19 @@ func TestNodesHomeNode(t *testing.T) {
 		t.Fail()
 		return
 	}
-	for _, n := range ns.hash {
-		log.Println(fmt.Sprintf("%d: %s", n.hash, n.domain))
-	}
 	hn1, err := ns.getHomeNode("212.36.33.158, 172.31.23.19", "127.0.0.1")
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 		return
 	}
-	hn2, err := ns.getHomeNode("109.249.187.121, 172.31.39.19", "127.0.0.1")
+	hn2, err := ns.getHomeNode("109.249.187.121, 172.31.23.19", "127.0.0.1")
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 		return
 	}
-	hn3, err := ns.getHomeNode("109.249.187.120, 172.31.39.19", "127.0.0.1")
+	hn3, err := ns.getHomeNode("109.249.187.120, 172.31.23.19", "127.0.0.1")
 	log.Println(hn1.domain)
 	log.Println(hn2.domain)
 	log.Println(hn3.domain)
@@ -70,17 +105,9 @@ func TestNodesHomeNode(t *testing.T) {
 		t.Fail()
 		return
 	}
-	if hn1.domain != "node83" {
-		fmt.Println(err)
-		t.Fail()
-		return
-	}
-	if hn2.domain != "node28" {
-		fmt.Println(err)
-		t.Fail()
-		return
-	}
-	if hn3.domain != "node23" {
+	if hn1.domain == hn2.domain ||
+		hn2.domain == hn3.domain ||
+		hn1.domain == hn3.domain {
 		fmt.Println(err)
 		t.Fail()
 		return

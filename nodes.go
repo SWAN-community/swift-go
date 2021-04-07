@@ -62,9 +62,7 @@ func getRemoteAddrHash(xff string, ra string) uint64 {
 	var a uint64
 	d := getRemoteAddr(xff, ra)
 	if len(d) > 0 {
-		h := newHash()
-		h.Write([]byte(d))
-		a = h.Sum64()
+		a = getHash(d)
 	}
 	return a
 }
