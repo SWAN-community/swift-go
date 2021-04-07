@@ -84,6 +84,11 @@ func (s *Services) getNodeFromRequest(h string, q int) (*Node, error) {
 		return nil, err
 	}
 
+	// Verify that a node was found.
+	if n == nil {
+		return nil, fmt.Errorf("No access node for '%s'", h)
+	}
+
 	// Verify that this node is the right type.
 	if n.role != q {
 		return nil, fmt.Errorf("Node '%s' incorrect type", n.domain)
