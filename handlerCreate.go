@@ -96,7 +96,6 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 // to the calculation of the home node to the values collection.
 func SetHomeNodeHeaders(r *http.Request, q *url.Values) {
 	x := r.Header.Get(xforwarededfor)
-	x = "109.249.187.121, 172.31.39.11"
 	if x != "" {
 		q.Set(xforwarededfor, x)
 	}
@@ -156,15 +155,9 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 
 	// Set the return URL to use when posting the message or to redirect the
 	// browser to with the encrypted SWAN data appended.
-	ru, err := url.Parse(q.Get(returnURLParam))
+	ru, err := validateURL(returnURLParam, q.Get(returnURLParam))
 	if err != nil {
 		return "", err
-	}
-	if ru.Host == "" {
-		return "", fmt.Errorf("Missing host from URL '%s'", ru)
-	}
-	if ru.Scheme == "" {
-		return "", fmt.Errorf("Missing scheme from URL '%s'", ru)
 	}
 	o.returnURL = ru.String()
 
@@ -374,4 +367,25 @@ func isReserved(s string) bool {
 		s == stateParam ||
 		s == displayUserInterfaceParam ||
 		s == postMessageOnCompleteParam
+}
+
+// validateURL confirms that the parameter is a valid URL and then returns the
+// URL ready for use with SWIFT if valid. The method checks that the SWIFT
+// encrypted data can be appended to the end of the string as an identifiable
+// segment.
+func validateURL(n string, v string) (*url.URL, error) {
+	if v == "" {
+		return nil, fmt.Errorf("%s must be a valid URL", n)
+	}
+	u, err := url.Parse(v)
+	if err != nil {
+		return nil, err
+	}
+	if u.Scheme == "" {
+		return nil, fmt.Errorf("%s '%s' must include a scheme", n, v)
+	}
+	if (u.Scheme == "http" || u.Scheme == "https") && u.Host == "" {
+		return nil, fmt.Errorf("%s '%s' must include a host", n, v)
+	}
+	return u, nil
 }
