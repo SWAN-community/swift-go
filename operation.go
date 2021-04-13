@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -37,7 +38,7 @@ type operation struct {
 	accessNode     string    // The domain name of the access node
 	nodesVisited   byte      // Nodes visited so far including current
 	nodeCount      byte      // Number of nodes that should be visited
-	values         []*pair   // Values of the data being stored
+	pairs          []*pair   // Value pairs from the operation
 	table          string    // The table to store the key value pairs in
 	homeNode       string    // The domain of the home node
 	state          []string  // Optional state information
@@ -50,6 +51,8 @@ type operation struct {
 	homeNodePtr *Node         // The pointer to the home node
 	network     *nodes        // The nodes that form the operation network
 	request     *http.Request // Http request associated with the operation
+	cookiePairs []*pair       // The value pairs from cookies
+	resolved    []*pair       // The resolved pairs
 
 	HTML // Include the common HTML UI members.
 }
@@ -75,7 +78,6 @@ func (o *operation) NodeCount() byte         { return o.nodeCount }
 func (o *operation) Debug() bool             { return o.services.config.Debug }
 func (o *operation) SVGStroke() int          { return svgStroke }
 func (o *operation) SVGSize() int            { return svgSize }
-func (o *operation) Values() []*pair         { return o.values }
 
 // Results of the operation to return to the caller.
 func (o *operation) Results() (string, error) {
@@ -208,31 +210,103 @@ func newOperationFromRequest(
 	// Increase the number of nodes visited count.
 	o.nodesVisited++
 
+	// Get any values from the cookies and resolve any conflicts with the
+	// operations values.
+	o.cookiePairs = make([]*pair, 0, len(o.pairs))
+	o.resolved = make([]*pair, len(o.pairs))
+	for i, p := range o.pairs {
+
+		// Default the resolved pair to the one from the operation.
+		o.resolved[i] = p
+
+		// Get the cookie if it exists for this pair.
+		c, err := r.Cookie(t.scramble(p.key))
+		if err == nil && c != nil {
+
+			// Decrypt the cookie value, and if valid add it to the array of
+			// cookies and resolve any conflicts with the operations pair.
+			cp, err := t.getValueFromCookie(c)
+
+			// It is possible the cookie is corrupt and therefore the value
+			// should be ignored. Only log this situation in debug mode as the
+			// scenario is legitimate in production.
+			if s.config.Debug {
+				log.Println(err)
+			}
+
+			if cp != nil {
+
+				// Add to the array of cookie pairs.
+				o.cookiePairs = append(o.cookiePairs, cp)
+
+				// Resolve any conflict between the operation pair and the
+				// cookie pair. Use this value for further storage operations.
+				o.resolved[i], err = resolveConflict(p, cp)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	return o, err
 }
 
-// If cookies were used to create the values in the bundle and they're all set
-// within a time frame that means they do not need to be sent to other nodes
-// in the network then return true.
+// getCookiesValid confirms that the cookies that are present were written
+// within the home node timeout and are still valid. This can be used to
+// determine if the rest of the network needs to be checked.
 func (o *operation) getCookiesValid() bool {
 	t := time.Now().UTC()
-	for _, p := range o.values {
-		if p.cookieWriteTime.Before(t) {
-			t = p.cookieWriteTime
+	for _, p := range o.resolved {
+		c := o.getCookie(p)
+		if c != nil {
+			if c.cookieWriteTime.IsZero() == false &&
+				c.cookieWriteTime.Before(t) {
+				t = c.cookieWriteTime
+			}
 		}
 	}
 	d := time.Now().UTC().Sub(t) / time.Second
 	return d < o.services.config.HomeNodeTimeout
 }
 
-// Returns true if cookies exist for all the values in the bundle, otherwise
-// false.
-func (o *operation) getCookiesPresent() bool {
-	z := true
-	for _, p := range o.values {
-		z = z && (p.cookieWriteTime.IsZero() == false)
+// getCookiesEqual confirms that all the cookies have values that are equal to
+// all the values in the operation. This indicates that the current node has the
+// intended version of the data.
+// TODO: This method may not be needed.
+func (o *operation) getCookiesEqual() bool {
+	for _, p := range o.resolved {
+		c := o.getCookie(p)
+
+		// If the cookie is present, but not equal to the storage operation then
+		// return false. This indicates that the current domain does not yet
+		// have the resolved version of the value.
+		if c == nil || p.equals(c) == false {
+			return false
+		}
+
+		// If the cookie is missing and the resolved value not empty then return
+		// false. This indicates the key has no value and a cookie therefore
+		// would not be written for the key.
+		if p.isEmpty() == false {
+			return false
+		}
 	}
-	return z
+	return true
+}
+
+// getAllCookiesPresent confirms that cookies exist for all the resolved pairs
+// in the operation where the value is not empty.
+func (o *operation) getAllCookiesPresent() bool {
+	for _, p := range o.resolved {
+		if p.isEmpty() == false {
+			c := o.getCookie(p)
+			if c == nil {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (o *operation) setValueInCookie(
@@ -247,6 +321,9 @@ func (o *operation) setValueInCookie(
 	err = p.writeToBuffer(&b)
 	if err != nil {
 		return err
+	}
+	if b.Len() == 0 {
+		return nil
 	}
 	v, err := o.thisNode.encrypt(b.Bytes())
 	if err != nil {
@@ -268,6 +345,46 @@ func (o *operation) setValueInCookie(
 func getDomain(h string) string {
 	s := strings.Split(h, ":")
 	return s[0]
+}
+
+// getCookie returns the cookie pair that relates to the pair provided.
+func (o *operation) getCookie(p *pair) *pair {
+	for _, i := range o.cookiePairs {
+		if i.key == p.key {
+			return i
+		}
+	}
+	return nil
+}
+
+// resolvePairs returns an array of the pairs to use considering the values
+// contained in the operation and the values from the cookies.
+func (o *operation) resolvePairs() ([]*pair, error) {
+	var err error
+
+	// Create an array of pairs to store the resolved values.
+	var r = make([]*pair, len(o.pairs))
+
+	// Loop through the operation pairs resolving conflicts with the cookie
+	// pairs if present.
+	for i, p := range o.pairs {
+
+		// Get the cookie pair that corresponds to this one in the operation.
+		c := o.getCookie(p)
+		if c != nil {
+
+			// If there are two possible values then resolve the conflict.
+			r[i], err = resolveConflict(p, c)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+
+			// These is no cookie so use the operation pair.
+			r[i] = p
+		}
+	}
+	return r, nil
 }
 
 func (o *operation) asByteArray() ([]byte, error) {
@@ -305,11 +422,11 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeByte(&b, byte(len(o.values)))
+	err = writeByte(&b, byte(len(o.resolved)))
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range o.values {
+	for _, v := range o.resolved {
 		err = v.writeToBuffer(&b)
 		if err != nil {
 			return nil, err
@@ -367,7 +484,7 @@ func (o *operation) setFromByteArray(d []byte) error {
 		if err != nil {
 			return err
 		}
-		o.values = append(o.values, &p)
+		o.pairs = append(o.pairs, &p)
 	}
 	r := b.Bytes()
 	if len(r) != 0 {
