@@ -44,6 +44,7 @@ const (
 	stateParam                 = "state"
 	displayUserInterfaceParam  = "displayUserInterface"
 	postMessageOnCompleteParam = "postMessageOnComplete"
+	useHomeNode                = "useHomeNode"
 )
 
 // Used to determine the storage character from the key to use for the
@@ -149,9 +150,13 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 
 	// Check the flag for the posting of a message on completion rather than
 	// using the return URL.
-	if q.Get(postMessageOnCompleteParam) == "true" {
-		o.SetPostMessageOnComplete(true)
-	}
+	o.SetPostMessageOnComplete(q.Get(postMessageOnCompleteParam) == "true")
+
+	// Check the flag for the display of the user interface.
+	o.SetDisplayUserInterface(q.Get(displayUserInterfaceParam) != "false")
+
+	// Check the flag for the use of the home node if it contains current data.
+	o.SetUseHomeNode(q.Get(useHomeNode) != "false")
 
 	// Set the return URL to use when posting the message or to redirect the
 	// browser to with the encrypted SWAN data appended.
@@ -161,15 +166,11 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 	}
 	o.returnURL = ru.String()
 
-	// Set the table that will be used for the storage of the key value
-	// pairs.
+	// Set the table that will be used for the storage of the key value pairs.
 	o.table = q.Get(tableParam)
 	if o.table == "" {
 		return "", fmt.Errorf("Missing table name")
 	}
-
-	// Check the flag for the display of the user interface.
-	o.SetDisplayUserInterface(q.Get(displayUserInterfaceParam) != "false")
 
 	// Set the browser warning probability if provided.
 	b, err := strconv.ParseFloat(q.Get(browserWarningParam), 32)
@@ -217,7 +218,7 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 				return "", fmt.Errorf(
 					"Pair does not contain valid conflict flag")
 			}
-			o.values = append(o.values, p)
+			o.resolved = append(o.resolved, p)
 		}
 	}
 
@@ -242,9 +243,10 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 	return u.String(), nil
 }
 
+// Creates a key value pair from the k and v values provided. If the v parameter
+// is an empty string then the operation will try and retrieve the existing
+// value for the key and will not update it.
 func createPair(k string, v string) (*pair, error) {
-	var err error
-	var p pair
 
 	// Get the command for the storage operation.
 	i := operationCharacterRegEx.FindStringIndex(k)
@@ -252,13 +254,53 @@ func createPair(k string, v string) (*pair, error) {
 		return nil, fmt.Errorf("Key '%s' must include a '+' to add the value "+
 			"to a list of values, or '<' (oldest wins) or '>' (newest wins) "+
 			"character to determine how to resolve two values for the same "+
-			"key, followed by a date in YYYY-MM-DD format to indicate when "+
-			"the value expires and is automatically deleted", k)
+			"key. If a value is provided this character must be followed by "+
+			"a date in YYYY-MM-DD format to indicate when "+
+			"the provided value expires and is automatically deleted.", k)
 	}
 	if len(i) > 2 || i[1]-i[0] != 1 {
 		return nil, fmt.Errorf(
 			"Key '%s' must contained only one '+', '<' or '>' character", k)
 	}
+
+	// If there is an expiry date then this indicates that the caller wishes
+	// to write the value to the network if other values don't exist.
+	if len(k)-1 != i[0] {
+		return createPairWithValue(k, v, i)
+	}
+	return createPairWithNoValue(k, i)
+}
+
+func getConflictPolicy(k string, i []int) (byte, error) {
+	switch k[i[0]] {
+	case '+':
+		return conflictAdd, nil
+	case '<':
+		return conflictOldest, nil
+	case '>':
+		return conflictNewest, nil
+	default:
+		return conflictInvalid, fmt.Errorf("Character '%c' invalid", k[i[0]])
+	}
+}
+
+func createPairWithNoValue(k string, i []int) (*pair, error) {
+	var err error
+	var p pair
+
+	// Create a valueless pair for the key with the provided conflict policy
+	// to retrieve existing values from the network.
+	p.key = k[:i[0]]
+	p.conflict, err = getConflictPolicy(k, i)
+	if err != nil {
+		return nil, err
+	}
+	return &p, err
+}
+
+func createPairWithValue(k string, v string, i []int) (*pair, error) {
+	var err error
+	var p pair
 
 	// Turn the value into a byte array. If the value is a base 64 string then
 	// use the resulting byte array. If it is not a base 64 string then use the
@@ -269,18 +311,9 @@ func createPair(k string, v string) (*pair, error) {
 	}
 
 	// Set how multiple values for the same key are handled.
-	switch k[i[0]] {
-	case '+':
-		p.conflict = conflictAdd
-		break
-	case '<':
-		p.conflict = conflictOldest
-		break
-	case '>':
-		p.conflict = conflictNewest
-		break
-	default:
-		return nil, fmt.Errorf("Character '%c' invalid", k[i[0]])
+	p.conflict, err = getConflictPolicy(k, i)
+	if err != nil {
+		return nil, err
 	}
 
 	// Work out the expiry time from the date that appears after the conflict
@@ -298,6 +331,7 @@ func createPair(k string, v string) (*pair, error) {
 	p.created = time.Now().UTC()
 	p.key = k[:i[0]]
 	p.values = [][]byte{b}
+
 	return &p, err
 }
 
@@ -366,7 +400,8 @@ func isReserved(s string) bool {
 		s == nodeCount ||
 		s == stateParam ||
 		s == displayUserInterfaceParam ||
-		s == postMessageOnCompleteParam
+		s == postMessageOnCompleteParam ||
+		s == useHomeNode
 }
 
 // validateURL confirms that the parameter is a valid URL and then returns the

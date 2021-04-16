@@ -88,16 +88,12 @@ func HandlerStore(
 
 		if o.nextNode != nil {
 
-			// Process any cookies to make sure this node stores the current
-			// version of the data.
-			err = o.processCookies(w, r)
-			if err != nil && s.config.Debug {
-				log.Println(err.Error())
-			}
-
-			// If this is the first node and all the cookies are valid then
-			// there is no need to continue bouncing.
-			if o.nodesVisited <= 1 && o.getCookiesValid() {
+			// If this is the first node (the home node), the home alone can be
+			// used if it contains a current version of the values, there are
+			// values in cookies for all the keys of the operation, and those
+			// values have not expired meaning the rest of the network does not
+			// need to be consulted to complete the operation.
+			if o.nodesVisited == 1 && o.UseHomeNode() && o.getCookiesValid() {
 				o.storeComplete(s, w, r)
 			} else {
 				o.storeContinue(s, w, r)
@@ -105,24 +101,17 @@ func HandlerStore(
 
 		} else {
 
-			// Process any cookies to make sure this node stores the current
-			// version of the data.
-			err = o.processCookies(w, r)
-			if err != nil && s.config.Debug {
-				log.Println(err.Error())
-			}
-
 			// If this is the home node and the last operation of a multi node
 			// operation then validate that cookies are available. If not then a
 			// warning will need to be shown and the next node will be the home
 			// node. Otherwise return to the returnURL.
-			if o.getCookiesPresent() == false && o.nodeCount > 1 {
+			if o.getAllCookiesPresent() == false &&
+				o.nodesVisited == o.nodeCount {
 				o.storeWarning(s, w, r)
 			} else {
 				o.storeComplete(s, w, r)
 			}
 		}
-
 	}
 }
 
@@ -152,9 +141,10 @@ func (o *operation) storeWarning(
 	var err error
 
 	// The next node after the cookies have been set is the home node. The
-	// counter will also need to be reset to zero.
+	// counter and the time stamp will also need to be reset to zero.
 	o.nextNode = o.HomeNode()
 	o.nodesVisited = 0
+	o.timeStamp = time.Now().UTC()
 
 	// Get the next URL for the node.
 	o.nextURL, err = o.getNextURL()
@@ -226,6 +216,9 @@ func (o *operation) storeReturn(
 	}
 	nu += x
 
+	// Sets cookies for any non empty resolved pairs.
+	o.setCookies(s, w, r)
+
 	// Turn the next URL string into a url.URL value.
 	o.nextURL, err = url.Parse(nu)
 	if err != nil {
@@ -257,6 +250,9 @@ func (o *operation) storeContinue(
 		return
 	}
 
+	// Sets cookies for any non empty resolved pairs.
+	o.setCookies(s, w, r)
+
 	// Set the preload header to trigger a DNS lookup on the next domain before
 	// the request to that domain occurs via the navigation change. Only do this
 	// if the next node is not the home node which will have already been
@@ -284,11 +280,27 @@ func (o *operation) storeContinue(
 	}
 }
 
+// setCookies for all the resolved pairs that are not empty.
+func (o *operation) setCookies(
+	s *Services,
+	w http.ResponseWriter,
+	r *http.Request) {
+	for _, p := range o.resolved {
+		if p.isEmpty() == false {
+			err := o.setValueInCookie(w, r, p)
+			if err != nil {
+				returnServerError(s, w, err)
+				return
+			}
+		}
+	}
+}
+
 func (o *operation) getResults() (string, error) {
 
 	// Build the results array of key value pairs.
 	var r Results
-	for _, p := range o.values {
+	for _, p := range o.resolved {
 		r.pairs = append(r.pairs, &p.Pair)
 	}
 
@@ -357,92 +369,4 @@ func (o *operation) asURLParameter() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(e), err
-}
-
-// For each of the keys that this operation is concerned with find the value
-// from the cookies if there is a cookie that shares the key. If there is no
-// cookie already for the key then set one in the response.
-func (o *operation) processCookies(
-	w http.ResponseWriter,
-	r *http.Request) error {
-	for _, p := range o.values {
-		c, err := r.Cookie(o.thisNode.scramble(p.key))
-		if err != nil {
-
-			// If there was a problem getting the cookie then just write the
-			// new cookie from the operational pair.
-			err = o.setValueInCookie(w, r, p)
-
-		} else {
-
-			// Process the cookie and the operational pair to determine which
-			// one should be used for the value, or if a list of values if they
-			// should be combined.
-			err = processCookie(w, r, o, p, c)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// processCookie determines if the cookie value contained in c should be used
-// OR if the operational data in p should be used. The cookie is then updated
-// with the value selected.
-// w the http response writer
-// r the http request
-// o the storage operation
-// op the current key value pair for the storage operation
-// c the cookie related to the key of p the contains value for this storage node
-func processCookie(
-	w http.ResponseWriter,
-	r *http.Request,
-	o *operation,
-	op *pair,
-	c *http.Cookie) error {
-
-	// op = operation pair
-	// cp = cookie pair
-	// rp = resolved pair - the pair after conflict resolution
-
-	// Decrypt the cookie value, and continue if valid.
-	cp, err := o.thisNode.getValueFromCookie(c)
-	if err != nil {
-
-		// The current cookie is invalid and can't be used. Set the cookie to
-		// the operations value.
-		o.setValueInCookie(w, r, op)
-
-	} else {
-
-		// Resolve the conflict between the operation's value and the one found
-		// in the cookie.
-		rp, err := resolveConflict(op, cp)
-		if err != nil {
-			return err
-		}
-
-		// Update the cookie for this node with the resolved value. Even if the
-		// value is not changing the pair.cookieWriteTime field needs to be
-		// updated to indicate to subsequent operations when the data was last
-		// current.
-		err = o.setValueInCookie(w, r, rp)
-		if err != nil {
-			return err
-		}
-
-		// If the a pair other than the operational pair was chosen then update
-		// the operational pair.
-		if rp != op {
-			op.conflict = rp.conflict
-			op.created = rp.created
-			op.expires = rp.expires
-			op.key = rp.key
-			op.values = rp.values
-			op.cookieWriteTime = rp.cookieWriteTime
-		}
-	}
-
-	return nil
 }

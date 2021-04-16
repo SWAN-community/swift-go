@@ -23,6 +23,7 @@ import "bytes"
 const (
 	flagDisplayUserInterface  = iota
 	flagPostMessageOnComplete = iota
+	flagUseHomeNode           = iota
 )
 
 // HTML parameters that control the function and display of the user interface.
@@ -82,6 +83,30 @@ func (h *HTML) SetPostMessageOnComplete(v bool) {
 		h.setBit(flagPostMessageOnComplete)
 	} else {
 		h.clearBit(flagPostMessageOnComplete)
+	}
+}
+
+// UseHomeNode true if the home node can be used if it contains current data.
+// False if the SWAN network should be consulted irrespective of the state of
+// data held on the home node.
+func (h *HTML) UseHomeNode() bool {
+	return h.hasBit(flagUseHomeNode)
+}
+
+// UseHomeNodeAsString returns the flag as a string. Either "true" or "false".
+func (h *HTML) UseHomeNodeAsString() string {
+	if h.PostMessageOnComplete() {
+		return "true"
+	}
+	return "false"
+}
+
+// SetUseHomeNode sets the flag to true or false.
+func (h *HTML) SetUseHomeNode(v bool) {
+	if v {
+		h.setBit(flagUseHomeNode)
+	} else {
+		h.clearBit(flagUseHomeNode)
 	}
 }
 

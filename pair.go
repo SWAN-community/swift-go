@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	conflictInvalid = iota // Used to ensure the byte has been initialised
+	conflictInvalid = iota // Used to ensure the byte has been initialized
 	conflictOldest  = iota
 	conflictNewest  = iota
 	conflictAdd     = iota
@@ -144,6 +144,34 @@ func (p *pair) isValid() bool {
 	return p.expires.After(time.Now().UTC())
 }
 
+// isEmpty treats any pair without any values as empty. A pair with values, but
+// those values are empty byte array is not considered any empty value.
+func (p *pair) isEmpty() bool {
+	return p.values == nil || len(p.values) == 0
+}
+
+// equals returns true if the key and all values match exactly, otherwise false.
+func (p *pair) equals(o *pair) bool {
+
+	// Check that the keys are equal.
+	if p.key != o.key {
+		return false
+	}
+
+	// Check that the number of values are the same.
+	if len(p.values) != len(o.values) {
+		return false
+	}
+
+	// Check that the values are all identical.
+	for i := 0; i < len(p.values); i++ {
+		if bytes.Equal(p.values[i], o.values[i]) == false {
+			return false
+		}
+	}
+	return true
+}
+
 // Performs a distinct merge of the values in the two pairs. Duplicates are
 // removed.
 func mergeValues(o *pair, c *pair) [][]byte {
@@ -251,12 +279,16 @@ func resolveConflict(o *pair, c *pair) (*pair, error) {
 			return nil, fmt.Errorf("Conflict flag is not initialized")
 		case conflictNewest:
 			p = resolveConflictNewest(o, c)
+			break
 		case conflictOldest:
 			p = resolveConflictOldest(o, c)
+			break
 		case conflictAdd:
 			p = mergePairs(o, c)
+			break
 		default:
 			p = o
+			break
 		}
 	}
 	return p, nil
