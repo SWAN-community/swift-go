@@ -78,6 +78,7 @@ func (o *operation) NodeCount() byte         { return o.nodeCount }
 func (o *operation) Debug() bool             { return o.services.config.Debug }
 func (o *operation) SVGStroke() int          { return svgStroke }
 func (o *operation) SVGSize() int            { return svgSize }
+func (o *operation) Values() []*pair         { return o.resolved }
 
 // Results of the operation to return to the caller.
 func (o *operation) Results() (string, error) {
@@ -254,7 +255,8 @@ func newOperationFromRequest(
 
 // getCookiesValid confirms that the cookies that are present were written
 // within the home node timeout and are still valid. This can be used to
-// determine if the rest of the network needs to be checked.
+// determine if the rest of the network needs to be checked. If there is no
+// cookie then the cookie is not valid because they are incomplete.
 func (o *operation) getCookiesValid() bool {
 	t := time.Now().UTC()
 	for _, p := range o.resolved {
@@ -264,6 +266,8 @@ func (o *operation) getCookiesValid() bool {
 				c.cookieWriteTime.Before(t) {
 				t = c.cookieWriteTime
 			}
+		} else {
+			return false
 		}
 	}
 	d := time.Now().UTC().Sub(t) / time.Second

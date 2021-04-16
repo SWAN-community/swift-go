@@ -21,16 +21,9 @@ import (
 	"strings"
 )
 
-var progressTemplate = newHTMLTemplate("progress", `
-<!DOCTYPE html>
-<html lang="{{.Language}}">
-<head>
-	<meta charset="utf-8" />
-	<title>{{.Title}}</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="icon" href="data:;base64,=">
-</head>
-<body style="margin: 0;
+var bodyStyle = `
+body {
+	margin: 0;
 	padding: 0;
 	font-family: nunito, sans-serif;
 	font-size: 16px;
@@ -40,66 +33,82 @@ var progressTemplate = newHTMLTemplate("progress", `
 	height: 100vh;         
 	display: flex;
 	justify-content: center;
-	align-items: center;">
-	<table style="text-align: center;">
-		<tr>
-			<td>
-				<p style="padding-bottom: 2.5em;">{{.Message}}</p>
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<div style="display:grid; width: {{.SVGSize}}px; margin: auto; line-height: {{.SVGSize}}px;">
-					<style>
-						div, svg {
-							grid-column: 1;
-							grid-row: 1;
-						}
-					</style>
-					<div>{{.PercentageComplete}}%</div>
-					<svg style="z-index: -1; stroke:{{.ProgressColor}}; fill:none; stroke-width: {{.SVGStroke}}; width: {{.SVGSize}}px; height: {{.SVGSize}}px;">
-						<path d="{{.SVGPath}}"></path>
-					</svg>
-				</div>
-			</td>
-		</tr>
-		{{if .Debug}}
-		<tr>
-			<td>
-				<style>
-					.debug {
-						text-align:left;
-						font-weight:initial;
-					}
-					.debug tr td {
-						word-wrap:break-word;
-						word-break:break-all;
-					}
-				</style>
-				<table class="debug">
-					<tr><th>TimeStamp:</th><td>{{.TimeStamp}}</td></tr>
-					<tr><th>TimeValid:</th><td>{{.IsTimeStampValid}}</td></tr>
-					<tr><th>ReturnUrl:</th><td>{{.ReturnURL}}</td></tr>
-					<tr><th>AccessNode:</th><td>{{.AccessNode}}</td></tr>
-					<tr><th>HomeNode:</th><td>{{.HomeNode.Domain}}</td></tr>
-					<tr><th>NodesVisited:</th><td>{{.NodesVisited}}</td></tr>
-					<tr><th>NodeCount:</th><td>{{.NodeCount}}</td></tr>
-					<tr><th>NextURL:</th><td>{{.NextURL}}</td></tr>
-				</table>
-				<table class="debug">
-				<tr><th>Key</th><th>Value</th><th>Created</th><th>Expires</th><th>Conflict</th></tr>
-				{{range .Values}} 
-				<tr><td>{{.Key}}</td><td>{{.Value}}</td><td>{{.Created}}</td><td>{{.Expires}}</td><td>{{.Conflict}}</td></tr>
-				{{end}}
-				</table>
-			</td>
-		</tr>
-		<tr><td><a href="{{.NextURL}}">Next</a></td></tr>
-		{{else}}
-		<meta http-equiv="refresh" content="0;URL='{{.NextURL}}'"/>
-		{{end}}        
-	</table>
-</body>
+	align-items: center; }
+table {
+	text-align: center; }
+`
+
+var progressRedirect = `
+{{if .Debug}}
+<tr>
+	<td>
+		<style>
+			.debug {
+				text-align:left;
+				font-weight:initial;
+			}
+			.debug tr td {
+				word-wrap:break-word;
+				word-break:break-all;
+			}
+		</style>
+		<table class="debug">
+			<tr><th>TimeStamp:</th><td>{{.TimeStamp}}</td></tr>
+			<tr><th>TimeValid:</th><td>{{.IsTimeStampValid}}</td></tr>
+			<tr><th>ReturnUrl:</th><td>{{.ReturnURL}}</td></tr>
+			<tr><th>AccessNode:</th><td>{{.AccessNode}}</td></tr>
+			<tr><th>HomeNode:</th><td>{{.HomeNode.Domain}}</td></tr>
+			<tr><th>NodesVisited:</th><td>{{.NodesVisited}}</td></tr>
+			<tr><th>NodeCount:</th><td>{{.NodeCount}}</td></tr>
+			<tr><th>NextURL:</th><td>{{.NextURL}}</td></tr>
+		</table>
+		<table class="debug">
+		<tr><th>Key</th><th>Value</th><th>Created</th><th>Expires</th><th>Conflict</th></tr>
+		{{range .Values}} 
+		<tr><td>{{.Key}}</td><td>{{.Value}}</td><td>{{.Created}}</td><td>{{.Expires}}</td><td>{{.Conflict}}</td></tr>
+		{{end}}
+		</table>
+	</td>
+</tr>
+<tr><td><a href="{{.NextURL}}">Next</a></td></tr>
+{{else}}
+<meta http-equiv="refresh" content="0;URL='{{.NextURL}}'"/>
+{{end}}`
+
+var progressUI = `
+<tr>
+	<td>
+		<p style="padding-bottom: 2.5em;">{{.Message}}</p>
+	</td>
+</tr>
+<tr>
+	<td>
+		<div style="display:grid; width: {{.SVGSize}}px; margin: auto; line-height: {{.SVGSize}}px;">
+			<style>
+				div, svg {
+					grid-column: 1;
+					grid-row: 1;
+				}
+			</style>
+			<div>{{.PercentageComplete}}%</div>
+			<svg style="z-index: -1; stroke:{{.ProgressColor}}; fill:none; stroke-width: {{.SVGStroke}}; width: {{.SVGSize}}px; height: {{.SVGSize}}px;">
+				<path d="{{.SVGPath}}"></path>
+			</svg>
+		</div>
+	</td>
+</tr>`
+
+var progressTemplate = newHTMLTemplate("progress", `
+<!DOCTYPE html>
+<html lang="{{.Language}}">
+<head>
+	<meta charset="utf-8" />
+	<title>{{.Title}}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" href="data:;base64,=">
+	<style>`+bodyStyle+`</style>
+</head>
+<body><table>`+progressUI+progressRedirect+`</table></body>
 </html>`)
 
 var blankTemplate = newHTMLTemplate("blank", `
@@ -122,18 +131,9 @@ var malformedTemplate = newHTMLTemplate("malformed", `
 	<title>Bad Request</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" href="data:;base64,=">
+	<style>`+bodyStyle+`</style>
 </head>
-<body style="margin: 0;
-	padding: 0;
-	font-family: nunito, sans-serif;
-	font-size: 16px;
-	font-weight: 600;
-	background-color: {{.BackgroundColor}};
-	color: {{.MessageColor}};
-	height: 100vh;         
-	display: flex;
-	justify-content: center;
-	align-items: center;">
+<body>
 	<table style="text-align: center; background-color: white; padding: 1em; border: solid black 2px;">
 		<tr>
 			<td>
@@ -158,18 +158,9 @@ var registerTemplate = newHTMLTemplate("register", `
 	<title>Shared Web State - Register Node</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" href="data:;base64,=">
+	<style>`+bodyStyle+`</style>
 </head>
-<body style="margin: 0;
-	padding: 0;
-	font-family: nunito, sans-serif;
-	font-size: 16px;
-	font-weight: 600;
-	background-color: {{.Services.Config.BackgroundColor}};
-	color: {{.Services.Config.MessageColor}};
-	height: 100vh;         
-	display: flex;
-	justify-content: center;
-	align-items: center;">
+<body>
 	<form action="register" method="GET">
 	<table style="text-align: left;">
 		<tr>
@@ -255,18 +246,9 @@ var warningTemplate = newHTMLTemplate("warning", `
 	<title>{{.Title}}</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" href="data:;base64,=">
+	<style>`+bodyStyle+`</style>
 </head>
-<body style="margin: 0;
-	padding: 0;
-	font-family: nunito, sans-serif;
-	font-size: 16px;
-	font-weight: 600;
-	background-color: {{.BackgroundColor}};
-	color: {{.MessageColor}};
-	height: 100vh;         
-	display: flex;
-	justify-content: center;
-	align-items: center;">
+<body>
 	<table style="text-align: center; background-color: white; padding: 1em; border: solid black 2px;">
 		<tr>
 			<td>
@@ -322,8 +304,9 @@ var postMessageTemplate = newHTMLTemplate("postMessage", `
 <head>
 	<meta charset="utf-8" />
 	<link rel="icon" href="data:;base64,=">
+	<style>`+bodyStyle+`</style>
 </head>
-<body style="background-color: {{.BackgroundColor}}">
+<body><table>`+progressUI+`</table>
 	<script>
 		window.opener.postMessage("{{.Results}}","{{.ReturnURL}}");
 	</script>

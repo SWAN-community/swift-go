@@ -44,6 +44,7 @@ const (
 	stateParam                 = "state"
 	displayUserInterfaceParam  = "displayUserInterface"
 	postMessageOnCompleteParam = "postMessageOnComplete"
+	useHomeNode                = "useHomeNode"
 )
 
 // Used to determine the storage character from the key to use for the
@@ -149,9 +150,13 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 
 	// Check the flag for the posting of a message on completion rather than
 	// using the return URL.
-	if q.Get(postMessageOnCompleteParam) == "true" {
-		o.SetPostMessageOnComplete(true)
-	}
+	o.SetPostMessageOnComplete(q.Get(postMessageOnCompleteParam) == "true")
+
+	// Check the flag for the display of the user interface.
+	o.SetDisplayUserInterface(q.Get(displayUserInterfaceParam) != "false")
+
+	// Check the flag for the use of the home node if it contains current data.
+	o.SetUseHomeNode(q.Get(useHomeNode) != "false")
 
 	// Set the return URL to use when posting the message or to redirect the
 	// browser to with the encrypted SWAN data appended.
@@ -161,15 +166,11 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 	}
 	o.returnURL = ru.String()
 
-	// Set the table that will be used for the storage of the key value
-	// pairs.
+	// Set the table that will be used for the storage of the key value pairs.
 	o.table = q.Get(tableParam)
 	if o.table == "" {
 		return "", fmt.Errorf("Missing table name")
 	}
-
-	// Check the flag for the display of the user interface.
-	o.SetDisplayUserInterface(q.Get(displayUserInterfaceParam) != "false")
 
 	// Set the browser warning probability if provided.
 	b, err := strconv.ParseFloat(q.Get(browserWarningParam), 32)
@@ -399,7 +400,8 @@ func isReserved(s string) bool {
 		s == nodeCount ||
 		s == stateParam ||
 		s == displayUserInterfaceParam ||
-		s == postMessageOnCompleteParam
+		s == postMessageOnCompleteParam ||
+		s == useHomeNode
 }
 
 // validateURL confirms that the parameter is a valid URL and then returns the

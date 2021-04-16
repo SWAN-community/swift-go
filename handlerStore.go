@@ -88,11 +88,12 @@ func HandlerStore(
 
 		if o.nextNode != nil {
 
-			// If this is the first node, there are values in cookies for all
-			// the keys of the operation, and those values have not expired
-			// meaning the rest of the network does not need to be consulted to
-			// complete the operation.
-			if o.nodesVisited == 1 && o.getCookiesValid() {
+			// If this is the first node (the home node), the home alone can be
+			// used if it contains a current version of the values, there are
+			// values in cookies for all the keys of the operation, and those
+			// values have not expired meaning the rest of the network does not
+			// need to be consulted to complete the operation.
+			if o.nodesVisited == 1 && o.UseHomeNode() && o.getCookiesValid() {
 				o.storeComplete(s, w, r)
 			} else {
 				o.storeContinue(s, w, r)
