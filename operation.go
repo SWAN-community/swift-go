@@ -333,6 +333,7 @@ func (o *operation) setValueInCookie(
 	if err != nil {
 		return err
 	}
+
 	cookie := http.Cookie{
 		Name:     o.thisNode.scramble(p.key),
 		Domain:   getDomain(r.Host),

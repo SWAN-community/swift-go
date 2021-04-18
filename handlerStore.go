@@ -226,12 +226,39 @@ func (o *operation) storeReturn(
 		return
 	}
 
+	if o.JavaScript() {
+		o.storeReturnJavaScript(s, w, r)
+	} else {
+		o.storeReturnHTML(s, w, r, t)
+	}
+}
+
+func (o *operation) storeReturnHTML(
+	s *Services,
+	w http.ResponseWriter,
+	r *http.Request,
+	t *template.Template) {
 	g := gzip.NewWriter(w)
 	defer g.Close()
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	err = t.Execute(g, o)
+	err := t.Execute(g, o)
+	if err != nil {
+		returnServerError(s, w, err)
+	}
+}
+
+func (o *operation) storeReturnJavaScript(
+	s *Services,
+	w http.ResponseWriter,
+	r *http.Request) {
+	g := gzip.NewWriter(w)
+	defer g.Close()
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	err := javaScriptReturnTemplate.Execute(g, o)
 	if err != nil {
 		returnServerError(s, w, err)
 	}
@@ -265,6 +292,17 @@ func (o *operation) storeContinue(
 				o.nextURL.Host))
 	}
 
+	if o.JavaScript() {
+		o.storeContinueJavaScript(s, w, r)
+	} else {
+		o.storeContinueHTML(s, w, r)
+	}
+}
+
+func (o *operation) storeContinueHTML(s *Services,
+	w http.ResponseWriter,
+	r *http.Request) {
+	var err error
 	g := gzip.NewWriter(w)
 	defer g.Close()
 	w.Header().Set("Content-Encoding", "gzip")
@@ -275,6 +313,20 @@ func (o *operation) storeContinue(
 	} else {
 		err = blankTemplate.Execute(g, o)
 	}
+	if err != nil {
+		returnServerError(s, w, err)
+	}
+}
+
+func (o *operation) storeContinueJavaScript(s *Services,
+	w http.ResponseWriter,
+	r *http.Request) {
+	g := gzip.NewWriter(w)
+	defer g.Close()
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	err := javaScriptProgressTemplate.Execute(g, o)
 	if err != nil {
 		returnServerError(s, w, err)
 	}

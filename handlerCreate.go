@@ -45,6 +45,7 @@ const (
 	displayUserInterfaceParam  = "displayUserInterface"
 	postMessageOnCompleteParam = "postMessageOnComplete"
 	useHomeNode                = "useHomeNode"
+	javaScript                 = "javaScript"
 )
 
 // Used to determine the storage character from the key to use for the
@@ -157,6 +158,9 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 
 	// Check the flag for the use of the home node if it contains current data.
 	o.SetUseHomeNode(q.Get(useHomeNode) != "false")
+
+	// Check the flag to respond with a JavaScript file.
+	o.SetJavaScript(q.Get(javaScript) == "true")
 
 	// Set the return URL to use when posting the message or to redirect the
 	// browser to with the encrypted SWAN data appended.
@@ -401,7 +405,8 @@ func isReserved(s string) bool {
 		s == stateParam ||
 		s == displayUserInterfaceParam ||
 		s == postMessageOnCompleteParam ||
-		s == useHomeNode
+		s == useHomeNode ||
+		s == javaScript
 }
 
 // validateURL confirms that the parameter is a valid URL and then returns the

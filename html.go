@@ -24,6 +24,7 @@ const (
 	flagDisplayUserInterface  = iota
 	flagPostMessageOnComplete = iota
 	flagUseHomeNode           = iota
+	flagJavaScript            = iota
 )
 
 // HTML parameters that control the function and display of the user interface.
@@ -107,6 +108,30 @@ func (h *HTML) SetUseHomeNode(v bool) {
 		h.setBit(flagUseHomeNode)
 	} else {
 		h.clearBit(flagUseHomeNode)
+	}
+}
+
+// JavaScript true if the response for storage operations should be JavaScript
+// include that will continue the operation. This feature requires cookies to be
+// sent for DOM inserted JavaScript elements.
+func (h *HTML) JavaScript() bool {
+	return h.hasBit(flagJavaScript)
+}
+
+// UseJavaScriptAsString returns the flag as a string. Either "true" or "false".
+func (h *HTML) UseJavaScriptAsString() string {
+	if h.JavaScript() {
+		return "true"
+	}
+	return "false"
+}
+
+// SetJavaScript sets the flag to true or false.
+func (h *HTML) SetJavaScript(v bool) {
+	if v {
+		h.setBit(flagJavaScript)
+	} else {
+		h.clearBit(flagJavaScript)
 	}
 }
 

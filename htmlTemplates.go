@@ -313,7 +313,35 @@ var postMessageTemplate = newHTMLTemplate("postMessage", `
 </body>
 </html>`)
 
+var javaScriptProgressTemplate = newJavaScriptTemplate("javaScriptProgress", `
+var p = document.currentScript.parentNode;
+var t = null;
+p.childNodes.forEach(c => {
+    if ("TABLE" == c.tagName) {
+		t = c;
+	}
+});
+if (t == null) {
+	t = document.createElement("table");
+	p.appendChild(t);
+}
+t.innerHTML = '`+progressUI+`';
+var s = document.createElement("script");
+s.src = "{{ .NextURL }}";
+p.appendChild(s);`)
+
+var javaScriptReturnTemplate = newJavaScriptTemplate("javaScriptReturn", `
+var p = document.currentScript.parentNode;
+var s = document.createElement("script");
+s.innerText = "swiftComplete('{{.Results}}')";
+p.appendChild(s);`)
+
 func newHTMLTemplate(n string, h string) *template.Template {
+	c := removeHTMLWhiteSpace(h)
+	return template.Must(template.New(n).Parse(c))
+}
+
+func newJavaScriptTemplate(n string, h string) *template.Template {
 	c := removeHTMLWhiteSpace(h)
 	return template.Must(template.New(n).Parse(c))
 }
