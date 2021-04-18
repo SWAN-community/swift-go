@@ -17,7 +17,6 @@
 package swift
 
 import (
-	"compress/gzip"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -81,16 +80,7 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 		}
 
 		// Return the URL.
-		g := gzip.NewWriter(w)
-		defer g.Close()
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		_, err = g.Write([]byte(u))
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
-			return
-		}
+		sendResponse(s, w, "text/plain; charset=utf-8", []byte(u))
 	}
 }
 

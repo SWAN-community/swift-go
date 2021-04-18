@@ -17,7 +17,6 @@
 package swift
 
 import (
-	"compress/gzip"
 	"encoding/base64"
 	"fmt"
 	"html/template"
@@ -103,9 +102,9 @@ func HandlerStore(
 
 			// If this is the home node and the last operation of a multi node
 			// operation then validate that cookies are available. If not then a
-			// warning will need to be shown and the next node will be the home
-			// node. Otherwise return to the returnURL.
-			if o.getAllCookiesPresent() == false &&
+			// warning will need to be shown for non JavaScript operations.
+			// Otherwise complete the operation.
+			if o.JavaScript() == false && o.getAllCookiesPresent() == false &&
 				o.nodesVisited == o.nodeCount {
 				o.storeWarning(s, w, r)
 			} else {
@@ -121,17 +120,7 @@ func storeMalformed(s *Services, w http.ResponseWriter, r *http.Request) {
 	o.request = r
 	o.HTML.BackgroundColor = s.config.BackgroundColor
 	o.HTML.MessageColor = s.config.MessageColor
-	g := gzip.NewWriter(w)
-	defer g.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.WriteHeader(http.StatusBadRequest)
-	err := malformedTemplate.Execute(g, &o)
-	if err != nil {
-		returnServerError(s, w, err)
-	}
-	return
+	sendHTMLTemplate(s, w, malformedTemplate, &o)
 }
 
 func (o *operation) storeWarning(
@@ -153,15 +142,8 @@ func (o *operation) storeWarning(
 		return
 	}
 
-	g := gzip.NewWriter(w)
-	defer g.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	err = warningTemplate.Execute(g, o)
-	if err != nil {
-		returnServerError(s, w, err)
-	}
+	// Send the warning.
+	sendHTMLTemplate(s, w, warningTemplate, o)
 }
 
 // If the post on complete flag is set then use the JavaScript post on complete
@@ -190,15 +172,7 @@ func (o *operation) storePostMessage(
 	w http.ResponseWriter,
 	r *http.Request,
 	t *template.Template) {
-	g := gzip.NewWriter(w)
-	defer g.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	err := t.Execute(g, o)
-	if err != nil {
-		returnServerError(s, w, err)
-	}
+	sendHTMLTemplate(s, w, t, o)
 }
 
 func (o *operation) storeReturn(
@@ -238,30 +212,14 @@ func (o *operation) storeReturnHTML(
 	w http.ResponseWriter,
 	r *http.Request,
 	t *template.Template) {
-	g := gzip.NewWriter(w)
-	defer g.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	err := t.Execute(g, o)
-	if err != nil {
-		returnServerError(s, w, err)
-	}
+	sendHTMLTemplate(s, w, t, o)
 }
 
 func (o *operation) storeReturnJavaScript(
 	s *Services,
 	w http.ResponseWriter,
 	r *http.Request) {
-	g := gzip.NewWriter(w)
-	defer g.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	err := javaScriptReturnTemplate.Execute(g, o)
-	if err != nil {
-		returnServerError(s, w, err)
-	}
+	sendJSTemplate(s, w, javaScriptReturnTemplate, o)
 }
 
 func (o *operation) storeContinue(
@@ -302,34 +260,19 @@ func (o *operation) storeContinue(
 func (o *operation) storeContinueHTML(s *Services,
 	w http.ResponseWriter,
 	r *http.Request) {
-	var err error
-	g := gzip.NewWriter(w)
-	defer g.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
+	var t *template.Template
 	if o.DisplayUserInterface() {
-		err = progressTemplate.Execute(g, o)
+		t = progressTemplate
 	} else {
-		err = blankTemplate.Execute(g, o)
+		t = blankTemplate
 	}
-	if err != nil {
-		returnServerError(s, w, err)
-	}
+	sendHTMLTemplate(s, w, t, o)
 }
 
 func (o *operation) storeContinueJavaScript(s *Services,
 	w http.ResponseWriter,
 	r *http.Request) {
-	g := gzip.NewWriter(w)
-	defer g.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	err := javaScriptProgressTemplate.Execute(g, o)
-	if err != nil {
-		returnServerError(s, w, err)
-	}
+	sendJSTemplate(s, w, javaScriptProgressTemplate, o)
 }
 
 // setCookies for all the resolved pairs that are not empty.

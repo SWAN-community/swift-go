@@ -17,7 +17,9 @@
 package swift
 
 import (
+	"compress/gzip"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 )
@@ -67,5 +69,63 @@ func returnServerError(s *Services, w http.ResponseWriter, err error) {
 	}
 	if s.config.Debug {
 		println(err.Error())
+	}
+}
+
+// getWriter creates a new compressed writer for the content type provided.
+func getWriter(w http.ResponseWriter, c string) *gzip.Writer {
+	g := gzip.NewWriter(w)
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Content-Type", c)
+	w.Header().Set("Cache-Control", "no-cache")
+	return g
+}
+
+func sendTemplate(s *Services,
+	w http.ResponseWriter,
+	t *template.Template,
+	c string,
+	m interface{}) {
+	g := getWriter(w, c)
+	defer g.Close()
+	err := t.Execute(g, m)
+	if err != nil {
+		returnServerError(s, w, err)
+	}
+}
+
+func sendHTMLTemplate(s *Services,
+	w http.ResponseWriter,
+	t *template.Template,
+	m interface{}) {
+	sendTemplate(s, w, t, "text/html; charset=utf-8", m)
+}
+
+func sendJSTemplate(s *Services,
+	w http.ResponseWriter,
+	t *template.Template,
+	m interface{}) {
+	sendTemplate(s, w, t, "application/javascript; charset=utf-8", m)
+}
+
+func sendResponse(
+	s *Services,
+	w http.ResponseWriter,
+	c string,
+	b []byte) {
+	g := getWriter(w, c)
+	defer g.Close()
+	l, err := g.Write(b)
+	if err != nil {
+		returnAPIError(s, w, err, http.StatusInternalServerError)
+		return
+	}
+	if l != len(b) {
+		returnAPIError(
+			s,
+			w,
+			fmt.Errorf("Byte count mismatch"),
+			http.StatusInternalServerError)
+		return
 	}
 }

@@ -17,7 +17,6 @@
 package swift
 
 import (
-	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -78,14 +77,6 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 		}
 
 		// Send the JSON string.
-		g := gzip.NewWriter(w)
-		defer g.Close()
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-cache")
-		_, err = g.Write(j)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
-		}
+		sendResponse(s, w, "application/json", j)
 	}
 }
