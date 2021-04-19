@@ -51,6 +51,15 @@ func (r *Results) Get(key string) *Pair {
 	return nil
 }
 
+// Map returns the results as a map, keyed on the pair key.
+func (r *Results) Map() map[string]*Pair {
+	p := make(map[string]*Pair)
+	for _, r := range r.pairs {
+		p[r.key] = r
+	}
+	return p
+}
+
 // IsTimeStampValid returns true if the time stamp of the result is valid.
 func (r *Results) IsTimeStampValid() bool {
 	return time.Now().UTC().Before(r.expires)
