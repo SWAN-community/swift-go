@@ -313,7 +313,22 @@ var postMessageTemplate = newHTMLTemplate("postMessage", `
 </body>
 </html>`)
 
+var javaScriptProgressTemplate = newJavaScriptTemplate("javaScriptProgress", `
+var s=document.createElement("script");
+s.src="{{.NextURL}}";
+document.currentScript.parentNode.appendChild(s);`)
+
+var javaScriptReturnTemplate = newJavaScriptTemplate("javaScriptReturn", `
+var s=document.createElement("script");
+s.innerText="{{.Table}}Complete('{{.Results}}')";
+document.currentScript.parentNode.appendChild(s);`)
+
 func newHTMLTemplate(n string, h string) *template.Template {
+	c := removeHTMLWhiteSpace(h)
+	return template.Must(template.New(n).Parse(c))
+}
+
+func newJavaScriptTemplate(n string, h string) *template.Template {
 	c := removeHTMLWhiteSpace(h)
 	return template.Must(template.New(n).Parse(c))
 }

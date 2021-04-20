@@ -17,9 +17,7 @@
 package swift
 
 import (
-	"compress/gzip"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 )
 
@@ -60,25 +58,6 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 		}
 
 		// The output is a binary array.
-		g := gzip.NewWriter(w)
-		defer g.Close()
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-
-		// Write the encrypted byte array to the output stream.
-		c, err := g.Write(out)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
-			return
-		}
-		if c != len(out) {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("Byte count mismatch"),
-				http.StatusInternalServerError)
-			return
-		}
+		sendResponse(s, w, "application/octet-stream", out)
 	}
 }

@@ -17,7 +17,6 @@
 package swift
 
 import (
-	"compress/gzip"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -92,15 +91,7 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		}
 
 		// Return the HTML page.
-		g := gzip.NewWriter(w)
-		defer g.Close()
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		err = registerTemplate.Execute(g, &d)
-		if err != nil {
-			returnServerError(s, w, err)
-		}
+		sendHTMLTemplate(s, w, registerTemplate, &d)
 	}
 }
 

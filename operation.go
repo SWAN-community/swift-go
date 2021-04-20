@@ -79,6 +79,7 @@ func (o *operation) Debug() bool             { return o.services.config.Debug }
 func (o *operation) SVGStroke() int          { return svgStroke }
 func (o *operation) SVGSize() int            { return svgSize }
 func (o *operation) Values() []*pair         { return o.resolved }
+func (o *operation) Table() string           { return o.table }
 
 // Results of the operation to return to the caller.
 func (o *operation) Results() (string, error) {
@@ -333,13 +334,20 @@ func (o *operation) setValueInCookie(
 	if err != nil {
 		return err
 	}
+	s := o.services.config.Scheme == "https"
+	var ss http.SameSite
+	if s {
+		ss = http.SameSiteNoneMode
+	} else {
+		ss = http.SameSiteLaxMode
+	}
 	cookie := http.Cookie{
 		Name:     o.thisNode.scramble(p.key),
 		Domain:   getDomain(r.Host),
 		Value:    base64.RawStdEncoding.EncodeToString(v),
 		Path:     fmt.Sprintf("/%s", o.thisNode.scramble(o.table)),
-		SameSite: http.SameSiteLaxMode,
-		Secure:   o.services.config.Scheme == "https",
+		SameSite: ss,
+		Secure:   s,
 		HttpOnly: true,
 		Expires:  p.expires}
 	http.SetCookie(w, &cookie)
