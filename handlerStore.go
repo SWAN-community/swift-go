@@ -305,33 +305,32 @@ func (o *operation) setCookies(
 	return nil
 }
 
-// setBrowserWarningCookie if the browser warning value is provided then set
-// a cookie to verify cookies are supported. Use a random UUID for the name of
-// the cookie. We only need to know it's present in the future not any value.
+// setBrowserWarningCookie set a cookie to verify cookies are supported. Use a
+// random number for the name of the cookie. We only need to know it's present
+// in the future not any value.
 func (o *operation) setBrowserWarningCookie(
 	s *Services,
 	w http.ResponseWriter,
 	r *http.Request) error {
-	if o.browserWarning != 0 {
 
-		// Create a random name for the cookie.
-		rand.Seed(time.Now().UnixNano())
-		bs := make([]byte, 4)
-		binary.LittleEndian.PutUint32(bs, uint32(rand.Int()))
+	// Create a random name for the cookie.
+	rand.Seed(time.Now().UnixNano())
+	bs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bs, uint32(rand.Int()))
 
-		// Create the SWIFT pair.
-		t := time.Now().UTC()
-		var b pair
-		b.key = o.thisNode.scrambleByteArray(bs)
-		b.created = t
-		b.expires = t.Add(s.config.HomeNodeTimeoutDuration())
+	// Create the SWIFT pair.
+	t := time.Now().UTC()
+	var b pair
+	b.key = o.thisNode.scrambleByteArray(bs)
+	b.created = t
+	b.expires = t.Add(s.config.HomeNodeTimeoutDuration())
 
-		// Set the cookie.
-		err := o.setValueInCookie(w, r, &b)
-		if err != nil {
-			return err
-		}
+	// Set the cookie.
+	err := o.setValueInCookie(w, r, &b)
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 

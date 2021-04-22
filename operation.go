@@ -32,16 +32,15 @@ import (
 type operation struct {
 
 	// Internal persisted state fields.
-	timeStamp      time.Time // The time that the state information was created
-	returnURL      string    // The URL to return to when the operation completes
-	browserWarning float32   // Probability of browser warning display
-	accessNode     string    // The domain name of the access node
-	nodesVisited   byte      // Nodes visited so far including current
-	nodeCount      byte      // Number of nodes that should be visited
-	pairs          []*pair   // Value pairs from the operation
-	table          string    // The table to store the key value pairs in
-	homeNode       string    // The domain of the home node
-	state          []string  // Optional state information
+	timeStamp    time.Time // The time that the state information was created
+	returnURL    string    // The URL to return to when the operation completes
+	accessNode   string    // The domain name of the access node
+	nodesVisited byte      // Nodes visited so far including current
+	nodeCount    byte      // Number of nodes that should be visited
+	pairs        []*pair   // Value pairs from the operation
+	table        string    // The table to store the key value pairs in
+	homeNode     string    // The domain of the home node
+	state        []string  // Optional state information
 
 	// The following fields are calculated for each request. Not stored.
 	services    *Services     // The services used for the operation
@@ -397,10 +396,6 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeFloat32(&b, o.browserWarning)
-	if err != nil {
-		return nil, err
-	}
 	err = writeString(&b, strings.Join(o.state, resultSeparator))
 	if err != nil {
 		return nil, err
@@ -449,10 +444,6 @@ func (o *operation) setFromByteArray(d []byte) error {
 		return err
 	}
 	o.homeNode, err = readString(b)
-	if err != nil {
-		return err
-	}
-	o.browserWarning, err = readFloat32(b)
 	if err != nil {
 		return err
 	}

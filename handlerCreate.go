@@ -29,7 +29,6 @@ import (
 )
 
 const (
-	browserWarningParam        = "browserWarning"
 	titleParam                 = "title"
 	messageParam               = "message"
 	returnURLParam             = "returnUrl"
@@ -164,17 +163,6 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 	o.table = q.Get(tableParam)
 	if o.table == "" {
 		return "", fmt.Errorf("Missing table name")
-	}
-
-	// Set the browser warning probability if provided.
-	b, err := strconv.ParseFloat(q.Get(browserWarningParam), 32)
-	if err == nil {
-		// Set the browser warning probability to the value provided by the
-		// the caller.
-		o.browserWarning = float32(b)
-	} else {
-		// Something went wrong. Set to zero to ensure no warning.
-		o.browserWarning = 0
 	}
 
 	// Set the user interface parameters from the optional parameters provided
@@ -388,7 +376,6 @@ func isReserved(s string) bool {
 		s == messageColorParam ||
 		s == backgroundColorParam ||
 		s == tableParam ||
-		s == browserWarningParam ||
 		s == xforwarededfor ||
 		s == remoteAddr ||
 		s == nodeCount ||
