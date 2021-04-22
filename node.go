@@ -116,9 +116,13 @@ func (n *Node) unscramble(s string) (string, error) {
 	return string(d), err
 }
 
-func (n *Node) scramble(s string) string {
+func (n *Node) scrambleByteArray(b []byte) string {
 	return base64.RawURLEncoding.EncodeToString(
-		n.scrambler.crypto.encryptWithNonce([]byte(s), n.nonce))
+		n.scrambler.crypto.encryptWithNonce(b, n.nonce))
+}
+
+func (n *Node) scramble(s string) string {
+	return n.scrambleByteArray([]byte(s))
 }
 
 func (n *Node) encrypt(d []byte) ([]byte, error) {

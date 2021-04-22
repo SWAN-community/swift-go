@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -225,4 +226,16 @@ func writeString(b *bytes.Buffer, s string) error {
 		b.WriteByte(0)
 	}
 	return err
+}
+
+func writeFloat32(b *bytes.Buffer, f float32) error {
+	return writeUint32(b, math.Float32bits(f))
+}
+
+func readFloat32(b *bytes.Buffer) (float32, error) {
+	f, err := readUint32(b)
+	if err != nil {
+		return 0, err
+	}
+	return math.Float32frombits(f), nil
 }

@@ -252,7 +252,7 @@ var warningTemplate = newHTMLTemplate("warning", `
 	<table style="text-align: center; background-color: white; padding: 1em; border: solid black 2px;">
 		<tr>
 			<td>
-				<p>Cookies are required to access this operation.</p>
+				<p>Cookies are required.</p>
 				<p>Use the settings option in your web browser to enable cookies.</p>
 				<p>You may need to disable tracking prevention.</p>
 			</td>

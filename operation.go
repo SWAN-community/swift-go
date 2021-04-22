@@ -118,8 +118,7 @@ func (o *operation) HomeNode() *Node {
 // IsTimeStampValid true if the time is without the storage operation timeout,
 // otherwise false.
 func (o *operation) IsTimeStampValid() bool {
-	t := o.timeStamp.Add(
-		time.Second * o.services.config.StorageOperationTimeout)
+	t := o.timeStamp.Add(o.services.config.StorageOperationTimeoutDuration())
 	return time.Now().UTC().Before(t)
 }
 
@@ -271,49 +270,17 @@ func (o *operation) getCookiesValid() bool {
 			return false
 		}
 	}
-	d := time.Now().UTC().Sub(t) / time.Second
-	return d < o.services.config.HomeNodeTimeout
+	d := time.Now().UTC().Sub(t)
+	return d < o.services.config.HomeNodeTimeoutDuration()
 }
 
-// getCookiesEqual confirms that all the cookies have values that are equal to
-// all the values in the operation. This indicates that the current node has the
-// intended version of the data.
-// TODO: This method may not be needed.
-func (o *operation) getCookiesEqual() bool {
-	for _, p := range o.resolved {
-		c := o.getCookie(p)
-
-		// If the cookie is present, but not equal to the storage operation then
-		// return false. This indicates that the current domain does not yet
-		// have the resolved version of the value.
-		if c == nil || p.equals(c) == false {
-			return false
-		}
-
-		// If the cookie is missing and the resolved value not empty then return
-		// false. This indicates the key has no value and a cookie therefore
-		// would not be written for the key.
-		if p.isEmpty() == false {
-			return false
-		}
-	}
-	return true
+// getAnyCookiesPresent returns true if any cookies are present, otherwise
+// false.
+func (o *operation) getAnyCookiesPresent() bool {
+	return len(o.request.Cookies()) > 0
 }
 
-// getAllCookiesPresent confirms that cookies exist for all the resolved pairs
-// in the operation where the value is not empty.
-func (o *operation) getAllCookiesPresent() bool {
-	for _, p := range o.resolved {
-		if p.isEmpty() == false {
-			c := o.getCookie(p)
-			if c == nil {
-				return false
-			}
-		}
-	}
-	return true
-}
-
+// setValueInCookie writes a node cookie for the pair provided.
 func (o *operation) setValueInCookie(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -430,6 +397,10 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = writeFloat32(&b, o.browserWarning)
+	if err != nil {
+		return nil, err
+	}
 	err = writeString(&b, strings.Join(o.state, resultSeparator))
 	if err != nil {
 		return nil, err
@@ -478,6 +449,10 @@ func (o *operation) setFromByteArray(d []byte) error {
 		return err
 	}
 	o.homeNode, err = readString(b)
+	if err != nil {
+		return err
+	}
+	o.browserWarning, err = readFloat32(b)
 	if err != nil {
 		return err
 	}

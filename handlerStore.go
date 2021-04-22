@@ -18,10 +18,12 @@ package swift
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
@@ -104,8 +106,9 @@ func HandlerStore(
 			// operation then validate that cookies are available. If not then a
 			// warning will need to be shown for non JavaScript operations.
 			// Otherwise complete the operation.
-			if o.JavaScript() == false && o.getAllCookiesPresent() == false &&
-				o.nodesVisited == o.nodeCount {
+			if o.nodesVisited == o.nodeCount &&
+				o.JavaScript() == false &&
+				o.getAnyCookiesPresent() == false {
 				o.storeWarning(s, w, r)
 			} else {
 				o.storeComplete(s, w, r)
@@ -123,6 +126,8 @@ func storeMalformed(s *Services, w http.ResponseWriter, r *http.Request) {
 	sendHTMLTemplate(s, w, malformedTemplate, &o)
 }
 
+// storeWarning provides a browser specific warning requesting the user changes
+// their settings to support SWIFT.
 func (o *operation) storeWarning(
 	s *Services,
 	w http.ResponseWriter,
@@ -142,7 +147,7 @@ func (o *operation) storeWarning(
 		return
 	}
 
-	// Send the warning.
+	// Send the HTML warning.
 	sendHTMLTemplate(s, w, warningTemplate, o)
 }
 
@@ -275,20 +280,58 @@ func (o *operation) storeContinueJavaScript(s *Services,
 	sendJSTemplate(s, w, javaScriptProgressTemplate, o)
 }
 
-// setCookies for all the resolved pairs that are not empty.
+// setCookies for all the resolved pairs that are not empty. If no cookies are
+// written as part of the storage operation because the values are empty then
+// set a special cookie used to verify that the browser does support cookies if
+// no cookies were included in the request.
 func (o *operation) setCookies(
 	s *Services,
 	w http.ResponseWriter,
-	r *http.Request) {
+	r *http.Request) error {
+	f := false
 	for _, p := range o.resolved {
 		if p.isEmpty() == false {
 			err := o.setValueInCookie(w, r, p)
 			if err != nil {
-				returnServerError(s, w, err)
-				return
+				return err
 			}
+			f = true
 		}
 	}
+	if f == false && o.getAnyCookiesPresent() == false {
+		return o.setBrowserWarningCookie(s, w, r)
+	}
+	return nil
+}
+
+// setBrowserWarningCookie if the browser warning value is provided then set
+// a cookie to verify cookies are supported. Use a random UUID for the name of
+// the cookie. We only need to know it's present in the future not any value.
+func (o *operation) setBrowserWarningCookie(
+	s *Services,
+	w http.ResponseWriter,
+	r *http.Request) error {
+	if o.browserWarning != 0 {
+
+		// Create a random name for the cookie.
+		rand.Seed(time.Now().UnixNano())
+		bs := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bs, uint32(rand.Int()))
+
+		// Create the SWIFT pair.
+		t := time.Now().UTC()
+		var b pair
+		b.key = o.thisNode.scrambleByteArray(bs)
+		b.created = t
+		b.expires = t.Add(s.config.HomeNodeTimeoutDuration())
+
+		// Set the cookie.
+		err := o.setValueInCookie(w, r, &b)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (o *operation) getResults() (string, error) {
@@ -301,7 +344,7 @@ func (o *operation) getResults() (string, error) {
 
 	// Add the expiry time for the results.
 	r.expires = time.Now().UTC().Add(
-		time.Second * o.services.config.StorageOperationTimeout)
+		o.services.config.StorageOperationTimeoutDuration())
 
 	// Add other state information from the storage operation.
 	r.state = o.state

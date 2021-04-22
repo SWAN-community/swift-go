@@ -28,11 +28,11 @@ import (
 type Configuration struct {
 	// The number of seconds from creation of an operation that it is valid for.
 	// Used to prevent repeated processing of the same operation.
-	StorageOperationTimeout time.Duration `json:"storageOperationTimeout"`
-	// The length of time values stored in SWIFT nodes can be relied upon to be
-	// current. Used by the home node to determine if it should consult other
-	// nodes in the network before returning it's current values.
-	HomeNodeTimeout time.Duration `json:"homeNodeTimeout"`
+	StorageOperationTimeout int `json:"storageOperationTimeout"`
+	// The length of time in seconds values stored in SWIFT nodes can be relied
+	// upon to be current. Used by the home node to determine if it should
+	// consult other nodes in the network before returning it's current values.
+	HomeNodeTimeout int `json:"homeNodeTimeout"`
 	// The default message to display in the user interface if one is not
 	// provided by the requestor of the storage operation.
 	Message string `json:"message"`
@@ -54,6 +54,17 @@ type Configuration struct {
 	NodeCount byte `json:"nodeCount"`
 	// True to enable debug logging and user interfaces.
 	Debug bool `json:"debug"`
+}
+
+// HomeNodeTimeoutDuration the home node timeout as a time.Duration
+func (c *Configuration) HomeNodeTimeoutDuration() time.Duration {
+	return time.Duration(c.HomeNodeTimeout) * time.Second
+}
+
+// StorageOperationTimeoutDuration the storage operation timeout as a
+// time.Duration
+func (c *Configuration) StorageOperationTimeoutDuration() time.Duration {
+	return time.Duration(c.StorageOperationTimeout) * time.Second
 }
 
 // NewConfig creates a new instance of configuration from the file provided.
