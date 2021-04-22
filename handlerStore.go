@@ -106,7 +106,8 @@ func HandlerStore(
 			// operation then validate that cookies are available. If not then a
 			// warning will need to be shown for non JavaScript operations.
 			// Otherwise complete the operation.
-			if o.nodesVisited == o.nodeCount &&
+			if o.nodeCount > 1 &&
+				o.nodesVisited == o.nodeCount &&
 				o.JavaScript() == false &&
 				o.getAnyCookiesPresent() == false {
 				o.storeWarning(s, w, r)
