@@ -63,12 +63,14 @@ func HandlerStore(
 			}
 
 			// If no node is set then find a random storage node that is not the
-			// home node. Try 10 times before giving up.
+			// home node or the current node. Try 10 times before giving up and
+			// just using the node found.
 			if o.nextNode == nil {
 				c := 10
 				for o.nextNode == nil && c > 0 {
 					o.nextNode = o.network.getRandomNode(func(i *Node) bool {
 						return i.role == roleStorage &&
+							i != o.thisNode &&
 							i.domain != o.HomeNode().domain
 					})
 					c--
