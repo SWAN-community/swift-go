@@ -50,3 +50,13 @@ func (r *Register) Language() string {
 	}
 	return ""
 }
+
+// BackgroundColor returns the background color associated with the service config
+func (r *Register) BackgroundColor() string {
+	return r.Services.config.BackgroundColor
+}
+
+// MessageColor returns the message color associated with the service config
+func (r *Register) MessageColor() string {
+	return r.Services.config.MessageColor
+}
