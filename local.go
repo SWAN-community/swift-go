@@ -195,7 +195,11 @@ func (l *Local) addSecrets(ns map[string]*Node) error {
 		}
 		if ns[k] != nil {
 			for _, i := range s {
-				ns[k].addSecret(i)
+				s, err := newSecretFromKey(i.Key, i.Timestamp)
+				if err != nil {
+					return err
+				}
+				ns[k].addSecret(s)
 			}
 		}
 	}
