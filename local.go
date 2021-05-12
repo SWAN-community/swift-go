@@ -112,7 +112,7 @@ func (l *Local) setNode(node *Node) error {
 		return err
 	}
 
-	nis[node.network] = &nodeItem{
+	nis[node.domain] = &nodeItem{
 		Network:     node.network,
 		Domain:      node.domain,
 		Created:     node.created,
@@ -175,7 +175,7 @@ func (l *Local) refresh() error {
 }
 
 func (l *Local) addSecrets(ns map[string]*Node) error {
-	sc := make(map[string][]*secret)
+	sc := make(map[string][]*secretItem)
 
 	// Fetch all records from the secrets file
 	data, err := readLocalStore(l.secretsFile)
