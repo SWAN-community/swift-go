@@ -25,6 +25,8 @@ import (
 	"time"
 )
 
+// Local store implementation for SWIFT - data is stored in maps in memory and
+// persisted on disk in JSON files.
 type Local struct {
 	timestamp   time.Time // The last time the maps were refreshed
 	nodesFile   string    // Reference to the node table
@@ -32,6 +34,7 @@ type Local struct {
 	common
 }
 
+// nodeItem is the JSON representation of a SWIFT Node
 type nodeItem struct {
 	Network     string
 	Domain      string
@@ -41,11 +44,14 @@ type nodeItem struct {
 	ScrambleKey string
 }
 
+// secretItem is the JSON representation of a SWIFT Secret
 type secretItem struct {
 	Timestamp time.Time
 	Key       string
 }
 
+// NewLocalStore creates a new instance of Local and configures the paths for
+// the persistent JSON files.
 func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
 	var l Local
 
@@ -282,6 +288,7 @@ func (l *Local) setNodeSecrets(node *Node) error {
 	return nil
 }
 
+// readLocalStore reads the contents of a file and returns the binary data.
 func readLocalStore(file string) ([]byte, error) {
 	err := createLocalStore(file)
 	if err != nil {
@@ -296,6 +303,7 @@ func readLocalStore(file string) ([]byte, error) {
 	return data, nil
 }
 
+// writeLocalStore writes binary data to a file.
 func writeLocalStore(file string, data []byte) error {
 	err := createLocalStore(file)
 	if err != nil {
@@ -309,6 +317,8 @@ func writeLocalStore(file string, data []byte) error {
 	return nil
 }
 
+// createLocalStore creates the persistent JSON file and any parents specified
+// in the path.
 func createLocalStore(file string) error {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 
