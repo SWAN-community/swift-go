@@ -78,7 +78,7 @@ func NewStore(swiftConfig Configuration) Store {
 		}
 	} else if len(swiftSecrets) > 0 &&
 		len(swiftNodes) > 0 {
-		log.Printf("OWID: Using local storage")
+		log.Printf("SWIFT: Using local storage")
 		swiftStore, err = NewLocalStore(swiftSecrets, swiftNodes)
 		if err != nil {
 			panic(err)
