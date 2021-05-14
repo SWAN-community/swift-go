@@ -252,6 +252,17 @@ func newOperationFromRequest(
 	return o, err
 }
 
+// done returns true if all the nodes needed have been visited
+// The storage operation is complete id all the required nodes (nodeCount) have
+// been visited OR the current node is the same as the next node and more than
+// two nodes have been visited. This is for situations where the SWAN network
+// contains fewer nodes than the node count for the operation and we need to
+// check that cookies have been written to the browser.
+func (o *operation) done() bool {
+	return (o.thisNode == o.nextNode && o.nodesVisited >= 2) ||
+		o.nodeCount == o.nodesVisited
+}
+
 // getCookiesValid confirms that the cookies that are present were written
 // within the home node timeout and are still valid. This can be used to
 // determine if the rest of the network needs to be checked. If there is no

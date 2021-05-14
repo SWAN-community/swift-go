@@ -313,6 +313,21 @@ var postMessageTemplate = newHTMLTemplate("postMessage", `
 </body>
 </html>`)
 
+var postMessageBlankTemplate = newHTMLTemplate("postMessage", `
+<!DOCTYPE html>
+<html lang="{{.Language}}">
+<head>
+	<meta charset="utf-8" />
+	<link rel="icon" href="data:;base64,=">
+	<style>`+bodyStyle+`</style>
+</head>
+<body>
+	<script>
+		window.opener.postMessage("{{.Results}}","{{.ReturnURL}}");
+	</script>
+</body>
+</html>`)
+
 var javaScriptProgressTemplate = newJavaScriptTemplate("javaScriptProgress", `
 var s=document.createElement("script");
 s.src="{{.NextURL}}";
