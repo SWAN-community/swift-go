@@ -30,6 +30,7 @@ import (
 func AddHandlers(
 	services *Services,
 	malformedHandler func(w http.ResponseWriter, r *http.Request)) {
+	http.HandleFunc("/share", HandlerShare(services))
 	http.HandleFunc("/swift/register", HandlerRegister(services))
 	http.HandleFunc("/swift/api/v1/create", HandlerCreate(services))
 	http.HandleFunc("/swift/api/v1/encrypt", HandlerEncrypt(services))

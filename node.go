@@ -34,6 +34,7 @@ var nodeHashTable = crc64.MakeTable(crc64.ECMA)
 const (
 	roleAccess  = iota // The node responds to server initiated access requests
 	roleStorage = iota // The node can be used for storage operations
+	roleShare   = iota // The node responds to share requests
 )
 
 // Node is a SWIFT storage node associated with a network and a domain name.
