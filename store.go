@@ -52,10 +52,12 @@ func NewStore(swiftConfig Configuration) Store {
 	var swiftStore Store
 	var err error
 
-	azureAccountName, azureAccountKey, gcpProject :=
+	azureAccountName, azureAccountKey, gcpProject, swiftSecrets, swiftNodes :=
 		os.Getenv("AZURE_STORAGE_ACCOUNT"),
 		os.Getenv("AZURE_STORAGE_ACCESS_KEY"),
-		os.Getenv("GCP_PROJECT")
+		os.Getenv("GCP_PROJECT"),
+		os.Getenv("SWIFT_SECRETS_FILE"),
+		os.Getenv("SWIFT_NODES_FILE")
 	if len(azureAccountName) > 0 || len(azureAccountKey) > 0 {
 		log.Printf("SWIFT: Using Azure Table Storage")
 		if len(azureAccountName) == 0 || len(azureAccountKey) == 0 {
@@ -69,7 +71,15 @@ func NewStore(swiftConfig Configuration) Store {
 			panic(err)
 		}
 	} else if len(gcpProject) > 0 {
+		log.Printf("SWIFT: Using Google Firebase")
 		swiftStore, err = NewFirebase(gcpProject)
+		if err != nil {
+			panic(err)
+		}
+	} else if len(swiftSecrets) > 0 &&
+		len(swiftNodes) > 0 {
+		log.Printf("SWIFT: Using local storage")
+		swiftStore, err = NewLocalStore(swiftSecrets, swiftNodes)
 		if err != nil {
 			panic(err)
 		}
@@ -82,8 +92,7 @@ func NewStore(swiftConfig Configuration) Store {
 	}
 
 	if swiftStore == nil {
-		panic(errors.New("SWIFT: store not configured, have you set AWS " +
-			" OR Azure Storage Table credentials?"))
+		panic(errors.New("SWIFT: store not configured"))
 	}
 
 	return swiftStore
