@@ -98,24 +98,14 @@ func HandlerStore(
 			// need to be consulted to complete the operation.
 			if o.nodesVisited == 1 && o.UseHomeNode() && o.getCookiesValid() {
 				o.storeComplete(s, w, r)
+			} else if o.done() {
+				o.storeDone(s, w, r)
 			} else {
 				o.storeContinue(s, w, r)
 			}
 
 		} else {
-
-			// If this is the home node and the last operation of a multi node
-			// operation then validate that cookies are available. If not then a
-			// warning will need to be shown for non JavaScript operations.
-			// Otherwise complete the operation.
-			if o.nodeCount > 1 &&
-				o.nodesVisited == o.nodeCount &&
-				o.JavaScript() == false &&
-				o.getAnyCookiesPresent() == false {
-				o.storeWarning(s, w, r)
-			} else {
-				o.storeComplete(s, w, r)
-			}
+			o.storeDone(s, w, r)
 		}
 	}
 }
@@ -127,6 +117,23 @@ func storeMalformed(s *Services, w http.ResponseWriter, r *http.Request) {
 	o.HTML.BackgroundColor = s.config.BackgroundColor
 	o.HTML.MessageColor = s.config.MessageColor
 	sendHTMLTemplate(s, w, malformedTemplate, &o)
+}
+
+// If this is the home node and the last operation of a multi node operation
+// then validate that cookies are available. If not then a warning will need to
+// be shown for non JavaScript operations. Otherwise complete the operation.
+func (o *operation) storeDone(
+	s *Services,
+	w http.ResponseWriter,
+	r *http.Request) {
+	if o.nodeCount > 1 &&
+		o.done() &&
+		o.JavaScript() == false &&
+		o.getAnyCookiesPresent() == false {
+		o.storeWarning(s, w, r)
+	} else {
+		o.storeComplete(s, w, r)
+	}
 }
 
 // storeWarning provides a browser specific warning requesting the user changes
@@ -161,7 +168,11 @@ func (o *operation) storeComplete(
 	w http.ResponseWriter,
 	r *http.Request) {
 	if o.PostMessageOnComplete() {
-		o.storePostMessage(s, w, r, postMessageTemplate)
+		if o.DisplayUserInterface() {
+			o.storePostMessage(s, w, r, postMessageTemplate)
+		} else {
+			o.storePostMessage(s, w, r, postMessageBlankTemplate)
+		}
 	} else {
 		if o.DisplayUserInterface() {
 			if o.nodesVisited <= 1 {
