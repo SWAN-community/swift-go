@@ -27,6 +27,7 @@ type Services struct {
 	store   Store           // Instance of storage service for node data
 	browser BrowserDetector // Service to provide browser warnings
 	access  Access          // Instance of the access control interface
+	share   *share          // instance of Share service
 }
 
 // NewServices a set of services to use with SWIFT. These provide defaults via
@@ -42,6 +43,7 @@ func NewServices(
 	s.store = store
 	s.access = access
 	s.browser = browser
+	s.share = newShare(store, config)
 	return &s
 }
 
