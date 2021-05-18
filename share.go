@@ -19,6 +19,7 @@ package swift
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 )
@@ -33,26 +34,24 @@ func newShare(store Store, config Configuration) *share {
 	var s share
 	s.scheme = config.Scheme
 	s.store = store
-
-	ticker := time.NewTicker(10 * time.Second)
-	s.Ticker = ticker
-	defer ticker.Stop()
-
 	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		s.Ticker = ticker
+		defer ticker.Stop()
 		for _ = range ticker.C {
 			nodes := s.store.getSharingNodes()
 			for _, n := range nodes {
-				b, err := s.callShare(n.domain)
+				b, err := s.callShare(n)
 				if err != nil {
-					// TODO: do something
+					log.Println(err.Error())
 				}
 				nodes, err := getNodesFromByteArray(b)
 				if err != nil {
-					// TODO: do something
+					log.Println(err.Error())
 				}
 				err = setNodes(s.store, nodes)
 				if err != nil {
-					// TODO: do something
+					log.Println(err.Error())
 				}
 			}
 		}
@@ -61,9 +60,9 @@ func newShare(store Store, config Configuration) *share {
 	return &s
 }
 
-func (s *share) callShare(host string) ([]byte, error) {
+func (s *share) callShare(node *Node) ([]byte, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", s.scheme+"://"+host+"/swift/api/v1/share", nil)
+	req, err := http.NewRequest("GET", s.scheme+"://"+node.domain+"/swift/api/v1/share", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,12 @@ func (s *share) callShare(host string) ([]byte, error) {
 		return nil, err
 	}
 
-	return body, nil
+	b, err := node.Decrypt(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }
 
 // addSharedNodes
