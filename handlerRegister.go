@@ -68,7 +68,9 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 			d.Role, err = strconv.Atoi(r.FormValue("role"))
 			if err != nil {
 				d.RoleError = err.Error()
-			} else if d.Role != roleAccess && d.Role != roleStorage {
+			} else if d.Role != roleAccess &&
+				d.Role != roleStorage &&
+				d.Role != roleShare {
 				d.RoleError = fmt.Sprintf("Role '%d' invalid", d.Role)
 			}
 		}

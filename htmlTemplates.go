@@ -220,6 +220,14 @@ var registerTemplate = newHTMLTemplate("register", `
 			</td>
 		</tr>
 		<tr>
+			<td>
+				<p><label for="2">Share Node</label></p>
+			</td>
+			<td>
+				<p><input type="radio" id="share" name="role" value="2" {{if .ReadOnly}}disabled{{end}} {{if eq .Role 2}}checked{{end}}></p>
+			</td>
+		</tr>
+		<tr>
 			<td colspan="3">
 				{{if .DisplayErrors}}
 				<p>{{.Error}}</p>
