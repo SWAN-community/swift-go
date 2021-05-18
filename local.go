@@ -34,16 +34,6 @@ type Local struct {
 	common
 }
 
-// nodeItem is the JSON representation of a SWIFT Node
-type nodeItem struct {
-	Network     string
-	Domain      string
-	Created     time.Time
-	Expires     time.Time
-	Role        int
-	ScrambleKey string
-}
-
 // secretItem is the JSON representation of a SWIFT Secret
 type secretItem struct {
 	Timestamp time.Time

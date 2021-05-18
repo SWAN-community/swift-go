@@ -51,6 +51,17 @@ type Node struct {
 	alive     bool      // True if the node is reachable via a HTTP request
 }
 
+// nodeItem is the JSON representation of a SWIFT Node. It exports fields so
+// they can be marshalled by the json library.
+type nodeItem struct {
+	Network     string
+	Domain      string
+	Created     time.Time
+	Expires     time.Time
+	Role        int
+	ScrambleKey string
+}
+
 // Domain returns the internet domain associated with the Node.
 func (n *Node) Domain() string { return n.domain }
 
