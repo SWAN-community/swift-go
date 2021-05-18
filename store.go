@@ -47,6 +47,9 @@ type Store interface {
 
 	// getAllNodes returns all the nodes in the store.
 	getAllNodes() []*Node
+
+	// getSharingNodes return all nodes with the sharing role.
+	getSharingNodes() []*Node
 }
 
 // NewStore returns a work implementation of the Store interface for the

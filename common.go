@@ -73,3 +73,14 @@ func (c *common) getAllNodes() []*Node {
 	}
 	return n
 }
+
+// getSharingNodes returns all the nodes with the role share for all networks.
+func (c *common) getSharingNodes() []*Node {
+	var n []*Node
+	for _, v := range c.nodes {
+		if v.role == roleShare {
+			n = append(n, v)
+		}
+	}
+	return n
+}
