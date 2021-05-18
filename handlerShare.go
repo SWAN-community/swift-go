@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -30,6 +31,7 @@ func HandlerShare(s *Services) http.HandlerFunc {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
+
 		if a == nil {
 			err = fmt.Errorf("host '%s' is not a SWIFT node", r.Host)
 			returnAPIError(s, w, err, http.StatusBadRequest)
@@ -42,5 +44,33 @@ func HandlerShare(s *Services) http.HandlerFunc {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
+
+		var ns []nodeItem
+		n := s.store.getAllNodes()
+		for _, d := range n {
+			newNode := nodeItem{
+				Network:     d.network,
+				Domain:      d.domain,
+				Created:     d.created,
+				Expires:     d.expires,
+				Role:        d.role,
+				ScrambleKey: d.scrambler.key,
+			}
+			ns = append(ns, newNode)
+		}
+
+		j, err := json.Marshal(ns)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusBadRequest)
+			return
+		}
+
+		b, err := a.encrypt(j)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusBadRequest)
+			return
+		}
+
+		w.Write(b)
 	}
 }

@@ -64,3 +64,12 @@ func (c *common) getNode(domain string) (*Node, error) {
 func (c *common) getNodes(network string) (*nodes, error) {
 	return c.networks[network], nil
 }
+
+// getAllNodes returns all the nodes for all networks.
+func (c *common) getAllNodes() []*Node {
+	var n []*Node
+	for _, v := range c.nodes {
+		n = append(n, v)
+	}
+	return n
+}

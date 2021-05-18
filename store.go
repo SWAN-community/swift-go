@@ -35,15 +35,18 @@ const (
 // Store interface for persistent data shared across instances operated.
 type Store interface {
 
-	// GetNode takes a domain name and returns the associated node. If a node
+	// getNode takes a domain name and returns the associated node. If a node
 	// does not exist then nil is returned.
 	getNode(domain string) (*Node, error)
 
-	// GetNodes returns all the nodes associated with a network.
+	// getNodes returns all the nodes associated with a network.
 	getNodes(network string) (*nodes, error)
 
-	// SetNode inserts or updates the node.
+	// setNode inserts or updates the node.
 	setNode(node *Node) error
+
+	// getAllNodes returns all the nodes in the store.
+	getAllNodes() []*Node
 }
 
 // NewStore returns a work implementation of the Store interface for the
