@@ -52,6 +52,17 @@ type Store interface {
 	getSharingNodes() []*Node
 }
 
+// setNodes inserts or updates the nodes
+func setNodes(l Store, nodes []*Node) error {
+	for _, v := range nodes {
+		err := l.setNode(v)
+		if err == nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // NewStore returns a work implementation of the Store interface for the
 // configuration supplied.
 func NewStore(swiftConfig Configuration) Store {
