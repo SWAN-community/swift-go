@@ -29,14 +29,14 @@ import (
 // Store.
 type share struct {
 	Ticker *time.Ticker
-	scheme string
+	config Configuration
 	store  Store
 }
 
 // newShare creates a new instance of share
 func newShare(store Store, config Configuration) *share {
 	var s share
-	s.scheme = config.Scheme
+	s.config = config
 	s.store = store
 
 	s.start()
@@ -60,7 +60,7 @@ func (s *share) callShare(node *Node) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 	}
-	url := s.scheme + "://" + node.domain + "/swift/api/v1/share"
+	url := s.config.Scheme + "://" + node.domain + "/swift/api/v1/share"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -132,8 +132,11 @@ func getNodesFromByteArray(data []byte) ([]*Node, error) {
 
 // fetchSharedNodes polls known sharing nodes to retrieve shared nodes.
 func fetchSharedNodes(s *share) {
-	// TODO: use longer time duration
-	ticker := time.NewTicker(10 * time.Second)
+	d := 30 * time.Minute
+	if s.config.Debug {
+		d = 30 * time.Second
+	}
+	ticker := time.NewTicker(d)
 	s.Ticker = ticker
 	defer ticker.Stop()
 	for _ = range ticker.C {
