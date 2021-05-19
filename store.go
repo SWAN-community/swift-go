@@ -56,7 +56,7 @@ type Store interface {
 func setNodes(l Store, nodes []*Node) error {
 	for _, v := range nodes {
 		err := l.setNode(v)
-		if err == nil {
+		if err != nil {
 			return err
 		}
 	}

@@ -48,6 +48,14 @@ func HandlerShare(s *Services) http.HandlerFunc {
 		var ns []nodeItem
 		n := s.store.getAllNodes()
 		for _, d := range n {
+			var secrets []secretItem
+			for _, v := range d.secrets {
+				secrets = append(secrets, secretItem{
+					Key:       v.key,
+					Timestamp: v.timeStamp,
+				})
+			}
+
 			newNode := nodeItem{
 				Network:     d.network,
 				Domain:      d.domain,
@@ -55,6 +63,7 @@ func HandlerShare(s *Services) http.HandlerFunc {
 				Expires:     d.expires,
 				Role:        d.role,
 				ScrambleKey: d.scrambler.key,
+				Secrets:     secrets,
 			}
 			ns = append(ns, newNode)
 		}

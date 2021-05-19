@@ -99,17 +99,31 @@ func getNodesFromByteArray(data []byte) ([]*Node, error) {
 	}
 
 	// Convert the marshallable nodeItem array into and array of Nodes
-	for _, n := range nis {
+	for _, ni := range nis {
 		n, err := newNode(
-			n.Network,
-			n.Domain,
-			n.Created,
-			n.Expires,
-			n.Role,
-			n.ScrambleKey)
+			ni.Network,
+			ni.Domain,
+			ni.Created,
+			ni.Expires,
+			ni.Role,
+			ni.ScrambleKey)
 		if err != nil {
 			return nil, err
 		}
+		var secrets []*secret
+		for _, k := range ni.Secrets {
+			s, err := newSecretFromKey(k.Key, k.Timestamp)
+			if err != nil {
+				log.Println(err.Error())
+				continue
+			}
+			secrets = append(secrets, s)
+		}
+		if len(secrets) == 0 {
+			log.Printf("shared node for %s missing secrets, skipping.../r/n", ni.Domain)
+			continue
+		}
+		n.secrets = secrets
 		nodes = append(nodes, n)
 	}
 

@@ -60,6 +60,7 @@ type nodeItem struct {
 	Expires     time.Time
 	Role        int
 	ScrambleKey string
+	Secrets     []secretItem
 }
 
 // Domain returns the internet domain associated with the Node.
