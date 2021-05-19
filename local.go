@@ -268,6 +268,23 @@ func (l *Local) setNodeSecrets(node *Node) error {
 	}
 
 	for _, i := range node.secrets {
+		s := sic[node.domain]
+
+		// check if secret exists already
+		add := true
+		for _, v := range s {
+			if v.Key == i.key {
+				add = false
+				break
+			}
+		}
+
+		// skip if secret already exists
+		if !add {
+			continue
+		}
+
+		// add new secret item to store
 		sic[node.domain] = append(sic[node.domain], &secretItem{
 			Timestamp: i.timeStamp,
 			Key:       i.key,
