@@ -45,7 +45,7 @@ func HandlerShare(s *Services) http.HandlerFunc {
 			return
 		}
 
-		var ns []nodeItem
+		var ns []nodeShareItem
 		n := s.store.getAllNodes()
 		for _, d := range n {
 			var secrets []secretItem
@@ -56,14 +56,16 @@ func HandlerShare(s *Services) http.HandlerFunc {
 				})
 			}
 
-			newNode := nodeItem{
-				Network:     d.network,
-				Domain:      d.domain,
-				Created:     d.created,
-				Expires:     d.expires,
-				Role:        d.role,
-				ScrambleKey: d.scrambler.key,
-				Secrets:     secrets,
+			newNode := nodeShareItem{
+				nodeItem: nodeItem{
+					Network:     d.network,
+					Domain:      d.domain,
+					Created:     d.created,
+					Expires:     d.expires,
+					Role:        d.role,
+					ScrambleKey: d.scrambler.key,
+				},
+				Secrets: secrets,
 			}
 			ns = append(ns, newNode)
 		}

@@ -91,7 +91,7 @@ func (s *share) callShare(node *Node) ([]byte, error) {
 // function.
 func getNodesFromByteArray(data []byte) ([]*Node, error) {
 	var nodes []*Node
-	var nis []nodeItem
+	var nis []nodeShareItem
 
 	err := json.Unmarshal(data, &nis)
 	if err != nil {

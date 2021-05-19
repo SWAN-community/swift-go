@@ -60,7 +60,13 @@ type nodeItem struct {
 	Expires     time.Time
 	Role        int
 	ScrambleKey string
-	Secrets     []secretItem
+}
+
+// nodeShareItem extends nodeItem to include secrets. This struct is used for
+// sharing nodes.
+type nodeShareItem struct {
+	nodeItem
+	Secrets []secretItem
 }
 
 // Domain returns the internet domain associated with the Node.
