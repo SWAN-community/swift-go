@@ -92,6 +92,15 @@ func (a *Azure) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
+// getAllNodes refreshes internal data and returns all nodes.
+func (a *Azure) getAllNodes() ([]*Node, error) {
+	err := a.refresh()
+	if err != nil {
+		return nil, err
+	}
+	return a.common.getAllNodes()
+}
+
 func (a *Azure) setNode(node *Node) error {
 	err := a.setNodeSecrets(node)
 	if err != nil {

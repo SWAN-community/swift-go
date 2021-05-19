@@ -87,6 +87,15 @@ func (a *Firebase) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
+// getAllNodes refreshes internal data and returns all nodes.
+func (a *Firebase) getAllNodes() ([]*Node, error) {
+	err := a.refresh()
+	if err != nil {
+		return nil, err
+	}
+	return a.common.getAllNodes()
+}
+
 func (f *Firebase) setNode(node *Node) error {
 	err := f.setNodeSecrets(node)
 	if err != nil {

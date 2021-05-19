@@ -89,6 +89,7 @@ func (l *Local) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
+// getAllNodes refreshes internal data and returns all nodes.
 func (l *Local) getAllNodes() ([]*Node, error) {
 	err := l.refresh()
 	if err != nil {

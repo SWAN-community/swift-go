@@ -314,6 +314,15 @@ func (a *AWS) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
+// getAllNodes refreshes internal data and returns all nodes.
+func (a *AWS) getAllNodes() ([]*Node, error) {
+	err := a.refresh()
+	if err != nil {
+		return nil, err
+	}
+	return a.common.getAllNodes()
+}
+
 // SetNode inserts or updates the node.
 func (a *AWS) setNode(node *Node) error {
 	err := a.setNodeSecrets(node)
