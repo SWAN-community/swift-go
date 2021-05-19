@@ -46,7 +46,11 @@ func HandlerShare(s *Services) http.HandlerFunc {
 		}
 
 		var ns []nodeShareItem
-		n := s.store.getAllNodes()
+		n, err := s.store.getAllNodes()
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusBadRequest)
+			return
+		}
 		for _, d := range n {
 			var secrets []secretItem
 			for _, v := range d.secrets {

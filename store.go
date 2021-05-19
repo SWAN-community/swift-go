@@ -46,7 +46,7 @@ type Store interface {
 	setNode(node *Node) error
 
 	// getAllNodes returns all the nodes in the store.
-	getAllNodes() []*Node
+	getAllNodes() ([]*Node, error)
 
 	// getSharingNodes return all nodes with the sharing role.
 	getSharingNodes() []*Node
@@ -54,7 +54,10 @@ type Store interface {
 
 // setNodes inserts or updates the nodes
 func setNodes(l Store, nodes []*Node) error {
-	currentNodes := l.getAllNodes()
+	currentNodes, err := l.getAllNodes()
+	if err != nil {
+		return err
+	}
 
 	for _, v := range nodes {
 		add := true

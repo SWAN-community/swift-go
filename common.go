@@ -66,12 +66,12 @@ func (c *common) getNodes(network string) (*nodes, error) {
 }
 
 // getAllNodes returns all the nodes for all networks.
-func (c *common) getAllNodes() []*Node {
+func (c *common) getAllNodes() ([]*Node, error) {
 	var n []*Node
 	for _, v := range c.nodes {
 		n = append(n, v)
 	}
-	return n
+	return n, nil
 }
 
 // getSharingNodes returns all the nodes with the role share for all networks.

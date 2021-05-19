@@ -89,6 +89,14 @@ func (l *Local) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
+func (l *Local) getAllNodes() ([]*Node, error) {
+	err := l.refresh()
+	if err != nil {
+		return nil, err
+	}
+	return l.common.getAllNodes()
+}
+
 // SetNode inserts or updates the node.
 func (l *Local) setNode(node *Node) error {
 	err := l.setNodeSecrets(node)
