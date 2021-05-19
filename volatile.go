@@ -35,6 +35,10 @@ func (v Volatile) getNodes(network string) (*nodes, error) {
 	return v.common.getNodes(network)
 }
 
+func (v Volatile) getAllNodes(network string) ([]*Node, error) {
+	return v.common.getAllNodes()
+}
+
 func (v Volatile) setNode(n *Node) error {
 	var net *nodes
 	v.nodes[n.domain] = n
