@@ -54,7 +54,24 @@ type Store interface {
 
 // setNodes inserts or updates the nodes
 func setNodes(l Store, nodes []*Node) error {
+	currentNodes := l.getAllNodes()
+
 	for _, v := range nodes {
+		add := true
+		// check if node already exists
+		for _, n := range currentNodes {
+			if n.domain == v.domain &&
+				!v.expires.After(n.expires) {
+				add = false
+				break
+			}
+		}
+
+		// if should not add then continue
+		if !add {
+			continue
+		}
+
 		err := l.setNode(v)
 		if err != nil {
 			return err
