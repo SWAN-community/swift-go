@@ -60,9 +60,13 @@ func (s *share) callShare(node *Node) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 	}
-	url := s.config.Scheme + "://" + node.domain + "/swift/api/v1/share"
+	url := url.URL{
+		Scheme: s.config.Scheme,
+		Host:   n.domain,
+		Path:   "/swift/api/v1/share",
+	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return nil, err
 	}
