@@ -40,6 +40,7 @@ table {
 
 var progressRedirect = `
 {{if .Debug}}
+<tr><td><a href="{{.NextURL}}">Next</a></td></tr>
 <tr>
 	<td>
 		<style>
@@ -61,6 +62,10 @@ var progressRedirect = `
 			<tr><th>NodesVisited:</th><td>{{.NodesVisited}}</td></tr>
 			<tr><th>NodeCount:</th><td>{{.NodeCount}}</td></tr>
 			<tr><th>NextURL:</th><td>{{.NextURL}}</td></tr>
+			<tr><th>DisplayUserInterface:</th><td>{{.DisplayUserInterface}}</td></tr>
+			<tr><th>PostMessageOnComplete:</th><td>{{.PostMessageOnComplete}}</td></tr>
+			<tr><th>UseHomeNode:</th><td>{{.UseHomeNode}}</td></tr>
+			<tr><th>JavaScript:</th><td>{{.JavaScript}}</td></tr>
 		</table>
 		<table class="debug">
 		<tr><th>Key</th><th>Value</th><th>Created</th><th>Expires</th><th>Conflict</th></tr>

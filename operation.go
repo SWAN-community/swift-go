@@ -265,9 +265,12 @@ func (o *operation) done() bool {
 
 // getCookiesValid confirms that the cookies that are present were written
 // within the home node timeout and are still valid. This can be used to
-// determine if the rest of the network needs to be checked. If there is no
-// cookie then the cookie is not valid because they are incomplete.
+// determine if the rest of the network needs to be checked for the storage
+// operation. If there is no cookie AND the value is not empty then the rest of
+// the network will need to be visited. If all the values are empty then cookies
+// can never be valid.
 func (o *operation) getCookiesValid() bool {
+	e := 0
 	t := time.Now().UTC()
 	for _, p := range o.resolved {
 		c := o.getCookie(p)
@@ -277,11 +280,16 @@ func (o *operation) getCookiesValid() bool {
 				t = c.cookieWriteTime
 			}
 		} else {
-			return false
+			if p.isEmpty() {
+				e++
+			} else {
+				return false
+			}
 		}
 	}
 	d := time.Now().UTC().Sub(t)
-	return d < o.services.config.HomeNodeTimeoutDuration()
+	return d < o.services.config.HomeNodeTimeoutDuration() &&
+		e < len(o.resolved)
 }
 
 // getAnyCookiesPresent returns true if any cookies are present, otherwise
