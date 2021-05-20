@@ -37,23 +37,24 @@ type Store interface {
 
 	// getNode takes a domain name and returns the associated node. If a node
 	// does not exist then nil is returned.
-	getNode(domain string) (*Node, error)
+	getNode(domain string) (*node, error)
 
 	// getNodes returns all the nodes associated with a network.
 	getNodes(network string) (*nodes, error)
 
 	// setNode inserts or updates the node.
-	setNode(node *Node) error
+	setNode(n *node) error
 
+	// TODO: should this include network param?
 	// getAllNodes returns all the nodes in the store.
-	getAllNodes() ([]*Node, error)
+	getAllNodes() ([]*node, error)
 
 	// getSharingNodes return all nodes with the sharing role.
-	getSharingNodes() []*Node
+	getSharingNodes() []*node
 }
 
 // setNodes inserts or updates the nodes
-func setNodes(l Store, nodes []*Node) error {
+func setNodes(l Store, nodes []*node) error {
 	currentNodes, err := l.getAllNodes()
 	if err != nil {
 		return err

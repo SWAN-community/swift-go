@@ -68,7 +68,7 @@ func HandlerStore(
 			if o.nextNode == nil {
 				c := 10
 				for o.nextNode == nil && c > 0 {
-					o.nextNode = o.network.getRandomNode(func(i *Node) bool {
+					o.nextNode = o.network.getRandomNode(func(i *node) bool {
 						return i.role == roleStorage &&
 							i != o.thisNode &&
 							i.domain != o.HomeNode().domain

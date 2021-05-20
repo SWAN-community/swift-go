@@ -58,7 +58,7 @@ func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
 
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (l *Local) getNode(domain string) (*Node, error) {
+func (l *Local) getNode(domain string) (*node, error) {
 	n, err := l.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (l *Local) getNodes(network string) (*nodes, error) {
 }
 
 // getAllNodes refreshes internal data and returns all nodes.
-func (l *Local) getAllNodes() ([]*Node, error) {
+func (l *Local) getAllNodes() ([]*node, error) {
 	err := l.refresh()
 	if err != nil {
 		return nil, err
@@ -99,8 +99,8 @@ func (l *Local) getAllNodes() ([]*Node, error) {
 }
 
 // SetNode inserts or updates the node.
-func (l *Local) setNode(node *Node) error {
-	err := l.setNodeSecrets(node)
+func (l *Local) setNode(n *node) error {
+	err := l.setNodeSecrets(n)
 	if err != nil {
 		return err
 	}
@@ -117,13 +117,13 @@ func (l *Local) setNode(node *Node) error {
 		return err
 	}
 
-	nis[node.domain] = &nodeItem{
-		Network:     node.network,
-		Domain:      node.domain,
-		Created:     node.created,
-		Expires:     node.expires,
-		Role:        node.role,
-		ScrambleKey: node.scrambler.key,
+	nis[n.domain] = &nodeItem{
+		Network:     n.network,
+		Domain:      n.domain,
+		Created:     n.created,
+		Expires:     n.expires,
+		Role:        n.role,
+		ScrambleKey: n.scrambler.key,
 	}
 
 	data, err = json.MarshalIndent(&nis, "", "\t")
@@ -157,7 +157,7 @@ func (l *Local) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*Node)
+			net.dict = make(map[string]*node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -179,7 +179,7 @@ func (l *Local) refresh() error {
 	return nil
 }
 
-func (l *Local) addSecrets(ns map[string]*Node) error {
+func (l *Local) addSecrets(ns map[string]*node) error {
 	sc := make(map[string][]*secretItem)
 
 	// Fetch all records from the secrets file
@@ -217,9 +217,9 @@ func (l *Local) addSecrets(ns map[string]*Node) error {
 	return nil
 }
 
-func (l *Local) fetchNodes() (map[string]*Node, error) {
+func (l *Local) fetchNodes() (map[string]*node, error) {
 	var err error
-	ns := make(map[string]*Node)
+	ns := make(map[string]*node)
 	nis := make(map[string]*nodeItem)
 
 	// Fetch all the records from the nodes file.
@@ -253,7 +253,7 @@ func (l *Local) fetchNodes() (map[string]*Node, error) {
 	return ns, err
 }
 
-func (l *Local) setNodeSecrets(node *Node) error {
+func (l *Local) setNodeSecrets(n *node) error {
 	sic := make(map[string][]*secretItem)
 
 	// Fetch all records from the secrets file
@@ -267,8 +267,8 @@ func (l *Local) setNodeSecrets(node *Node) error {
 		return err
 	}
 
-	for _, i := range node.secrets {
-		s := sic[node.domain]
+	for _, i := range n.secrets {
+		s := sic[n.domain]
 
 		// check if secret exists already
 		add := true
@@ -285,7 +285,7 @@ func (l *Local) setNodeSecrets(node *Node) error {
 		}
 
 		// add new secret item to store
-		sic[node.domain] = append(sic[node.domain], &secretItem{
+		sic[n.domain] = append(sic[n.domain], &secretItem{
 			Timestamp: i.timeStamp,
 			Key:       i.key,
 		})

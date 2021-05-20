@@ -57,7 +57,7 @@ func NewFirebase(project string) (*Firebase, error) {
 	return &f, nil
 }
 
-func (a *Firebase) getNode(domain string) (*Node, error) {
+func (a *Firebase) getNode(domain string) (*node, error) {
 	n, err := a.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (a *Firebase) getNodes(network string) (*nodes, error) {
 }
 
 // getAllNodes refreshes internal data and returns all nodes.
-func (a *Firebase) getAllNodes() ([]*Node, error) {
+func (a *Firebase) getAllNodes() ([]*node, error) {
 	err := a.refresh()
 	if err != nil {
 		return nil, err
@@ -96,20 +96,20 @@ func (a *Firebase) getAllNodes() ([]*Node, error) {
 	return a.common.getAllNodes()
 }
 
-func (f *Firebase) setNode(node *Node) error {
-	err := f.setNodeSecrets(node)
+func (f *Firebase) setNode(n *node) error {
+	err := f.setNodeSecrets(n)
 	if err != nil {
 		return err
 	}
 	ctx := context.Background()
 	item := NodeItem{
-		node.network,
-		node.domain,
-		node.created,
-		node.expires.Unix(),
-		node.role,
-		node.scrambler.key}
-	_, err2 := f.client.Collection(nodesTableName).Doc(node.domain).Set(ctx, item)
+		n.network,
+		n.domain,
+		n.created,
+		n.expires.Unix(),
+		n.role,
+		n.scrambler.key}
+	_, err2 := f.client.Collection(nodesTableName).Doc(n.domain).Set(ctx, item)
 	return err2
 }
 
@@ -131,7 +131,7 @@ func (a *Firebase) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*Node)
+			net.dict = make(map[string]*node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -153,7 +153,7 @@ func (a *Firebase) refresh() error {
 	return nil
 }
 
-func (f *Firebase) addSecrets(ns map[string]*Node) error {
+func (f *Firebase) addSecrets(ns map[string]*node) error {
 	ctx := context.Background()
 	iter := f.client.Collection(secretsTableName).Documents(ctx)
 	for {
@@ -183,8 +183,8 @@ func (f *Firebase) addSecrets(ns map[string]*Node) error {
 	return nil
 }
 
-func (f *Firebase) fetchNodes() (map[string]*Node, error) {
-	ns := make(map[string]*Node)
+func (f *Firebase) fetchNodes() (map[string]*node, error) {
+	ns := make(map[string]*node)
 	ctx := context.Background()
 
 	iter := f.client.Collection(nodesTableName).Documents(ctx)
@@ -212,14 +212,14 @@ func (f *Firebase) fetchNodes() (map[string]*Node, error) {
 	return ns, nil
 }
 
-func (f *Firebase) setNodeSecrets(node *Node) error {
+func (f *Firebase) setNodeSecrets(n *node) error {
 	ctx := context.Background()
-	for _, s := range node.secrets {
+	for _, s := range n.secrets {
 
 		item := SecretItem{
-			node.domain,
+			n.domain,
 			s.timeStamp,
-			node.expires.Unix(),
+			n.expires.Unix(),
 			s.key}
 
 		_, _, err := f.client.Collection(secretsTableName).Add(ctx, item)

@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -56,7 +57,7 @@ func (s *share) stop() {
 
 // cllShare makes a request to a sharing node to get shared node data and
 // decrypts the resulting byte array.
-func (s *share) callShare(node *Node) ([]byte, error) {
+func (s *share) callShare(n *node) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 	}
@@ -82,7 +83,7 @@ func (s *share) callShare(node *Node) ([]byte, error) {
 		return nil, err
 	}
 
-	b, err := node.Decrypt(body)
+	b, err := n.Decrypt(body)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +94,8 @@ func (s *share) callShare(node *Node) ([]byte, error) {
 // getNodesFromByteArray takes a byte array and tries to unmarshal it as an
 // array of nodeItems, these are then converted into Nodes using the newNode
 // function.
-func getNodesFromByteArray(data []byte) ([]*Node, error) {
-	var nodes []*Node
+func getNodesFromByteArray(data []byte) ([]*node, error) {
+	var nodes []*node
 	var nis []nodeShareItem
 
 	err := json.Unmarshal(data, &nis)

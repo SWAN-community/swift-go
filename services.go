@@ -54,14 +54,14 @@ func (s *Services) Config() *Configuration { return &s.config }
 // name provided. If the host does not exist then an error is returned. If the
 // host exists, but is not an access node then an error is returned.
 // h is the internet domain of the SWIFT access node host
-func (s *Services) GetAccessNodeForHost(h string) (*Node, error) {
+func (s *Services) GetAccessNodeForHost(h string) (*node, error) {
 	return s.getNodeFromRequest(h, roleAccess)
 }
 
 // GetHomeNode returns the home node for the web browser associated with the
 // access node processing the request. If the current request is not to an
 // access node then an error will be returned.
-func (s *Services) GetHomeNode(r *http.Request) (*Node, error) {
+func (s *Services) GetHomeNode(r *http.Request) (*node, error) {
 	q := r.Form
 	h, err := s.GetAccessNodeForHost(r.Host)
 	if err != nil {
@@ -74,11 +74,11 @@ func (s *Services) GetHomeNode(r *http.Request) (*Node, error) {
 	return n.getHomeNode(q.Get(xforwarededfor), q.Get(remoteAddr))
 }
 
-func (s *Services) getStorageNode(r *http.Request) (*Node, error) {
+func (s *Services) getStorageNode(r *http.Request) (*node, error) {
 	return s.getNodeFromRequest(r.Host, roleStorage)
 }
 
-func (s *Services) getNodeFromRequest(h string, q int) (*Node, error) {
+func (s *Services) getNodeFromRequest(h string, q int) (*node, error) {
 
 	// Get the node associated with the request.
 	n, err := s.store.getNode(h)

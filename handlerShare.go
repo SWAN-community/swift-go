@@ -45,15 +45,15 @@ func HandlerShare(s *Services) http.HandlerFunc {
 			return
 		}
 
-		var ns []nodeShareItem
-		n, err := s.store.getAllNodes()
+		var nis []nodeShareItem
+		ns, err := s.store.getAllNodes()
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
-		for _, d := range n {
+		for _, n := range ns {
 			var secrets []secretItem
-			for _, v := range d.secrets {
+			for _, v := range n.secrets {
 				secrets = append(secrets, secretItem{
 					Key:       v.key,
 					Timestamp: v.timeStamp,
@@ -62,19 +62,19 @@ func HandlerShare(s *Services) http.HandlerFunc {
 
 			newNode := nodeShareItem{
 				nodeItem: nodeItem{
-					Network:     d.network,
-					Domain:      d.domain,
-					Created:     d.created,
-					Expires:     d.expires,
-					Role:        d.role,
-					ScrambleKey: d.scrambler.key,
+					Network:     n.network,
+					Domain:      n.domain,
+					Created:     n.created,
+					Expires:     n.expires,
+					Role:        n.role,
+					ScrambleKey: n.scrambler.key,
 				},
 				Secrets: secrets,
 			}
-			ns = append(ns, newNode)
+			nis = append(nis, newNode)
 		}
 
-		j, err := json.Marshal(ns)
+		j, err := json.Marshal(nis)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return

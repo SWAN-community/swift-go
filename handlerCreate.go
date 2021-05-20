@@ -323,7 +323,7 @@ func createPairWithValue(k string, v string, i []int) (*pair, error) {
 // bad actors attempting to gain access to the network. If no access node is
 // provided then the default one will be used. The access node is not valid for
 // other purposes so remove it from the parameters.
-func setAccessNode(s *Services, o *operation, q *url.Values, a *Node) error {
+func setAccessNode(s *Services, o *operation, q *url.Values, a *node) error {
 	v := q.Get("accessNode")
 	if v == "" {
 		o.accessNode = a.domain

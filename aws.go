@@ -283,7 +283,7 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (a *AWS) getNode(domain string) (*Node, error) {
+func (a *AWS) getNode(domain string) (*node, error) {
 	n, err := a.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func (a *AWS) getNodes(network string) (*nodes, error) {
 }
 
 // getAllNodes refreshes internal data and returns all nodes.
-func (a *AWS) getAllNodes() ([]*Node, error) {
+func (a *AWS) getAllNodes() ([]*node, error) {
 	err := a.refresh()
 	if err != nil {
 		return nil, err
@@ -324,18 +324,18 @@ func (a *AWS) getAllNodes() ([]*Node, error) {
 }
 
 // SetNode inserts or updates the node.
-func (a *AWS) setNode(node *Node) error {
-	err := a.setNodeSecrets(node)
+func (a *AWS) setNode(n *node) error {
+	err := a.setNodeSecrets(n)
 	if err != nil {
 		return err
 	}
 	item := NodeItem{
-		node.network,
-		node.domain,
-		node.created,
-		node.expires.Unix(),
-		node.role,
-		node.scrambler.key}
+		n.network,
+		n.domain,
+		n.created,
+		n.expires.Unix(),
+		n.role,
+		n.scrambler.key}
 
 	av, err := dynamodbattribute.MarshalMap(item)
 	if err != nil {
@@ -375,7 +375,7 @@ func (a *AWS) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*Node)
+			net.dict = make(map[string]*node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -397,9 +397,9 @@ func (a *AWS) refresh() error {
 	return nil
 }
 
-func (a *AWS) fetchNodes() (map[string]*Node, error) {
+func (a *AWS) fetchNodes() (map[string]*node, error) {
 	var err error
-	ns := make(map[string]*Node)
+	ns := make(map[string]*node)
 
 	// Fetch all the records from the nodes table in Dynamo.
 	params := &dynamodb.ScanInput{
@@ -440,7 +440,7 @@ func (a *AWS) fetchNodes() (map[string]*Node, error) {
 	return ns, err
 }
 
-func (a *AWS) addSecrets(ns map[string]*Node) error {
+func (a *AWS) addSecrets(ns map[string]*node) error {
 
 	// Fetch all the records from the secrets table in DynamoDB.
 	params := &dynamodb.ScanInput{
@@ -482,14 +482,14 @@ func (a *AWS) addSecrets(ns map[string]*Node) error {
 	return nil
 }
 
-func (a *AWS) setNodeSecrets(node *Node) error {
+func (a *AWS) setNodeSecrets(n *node) error {
 	var pi []*dynamodb.WriteRequest
 
-	for _, s := range node.secrets {
+	for _, s := range n.secrets {
 		item := SecretItem{
-			node.domain,
+			n.domain,
 			s.timeStamp,
-			node.expires.Unix(),
+			n.expires.Unix(),
 			s.key}
 
 		av, err := dynamodbattribute.MarshalMap(item)
