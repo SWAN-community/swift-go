@@ -16,30 +16,56 @@
 
 package swift
 
+import "fmt"
+
 // Volatile localstorage implementation for testing
 type Volatile struct {
+	name     string
+	readOnly bool
 	common
 }
 
-func newVolatile() *Volatile {
+func newVolatile(name string, readOnly bool, ns []*node) *Volatile {
 	var v Volatile
-	v.init()
+	v.name = name
+	v.readOnly = readOnly
+	v.init(ns)
 	return &v
 }
 
-func (v Volatile) getNode(domain string) (*node, error) {
+func (v *Volatile) getName() string {
+	return v.name
+}
+
+func (v *Volatile) getNode(domain string) (*node, error) {
 	return v.common.getNode(domain)
 }
 
-func (v Volatile) getNodes(network string) (*nodes, error) {
+func (v *Volatile) getNodes(network string) (*nodes, error) {
 	return v.common.getNodes(network)
 }
 
-func (v Volatile) getAllNodes(network string) ([]*node, error) {
-	return v.common.getAllNodes()
+func (v *Volatile) getReadOnly() bool {
+	return v.readOnly
 }
 
-func (v Volatile) setNode(n *node) error {
+func (v *Volatile) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range v.common.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (v *Volatile) setNode(n *node) error {
+	if v.readOnly {
+		return fmt.Errorf("store '%s' is read only", v.name)
+	}
+
 	var net *nodes
 	v.nodes[n.domain] = n
 	net = v.networks[n.network]

@@ -39,6 +39,7 @@ type operation struct {
 	nodeCount    byte      // Number of nodes that should be visited
 	pairs        []*pair   // Value pairs from the operation
 	table        string    // The table to store the key value pairs in
+	prevNode     string    // The domain of the previous node
 	homeNode     string    // The domain of the home node
 	state        []string  // Optional state information
 
@@ -47,6 +48,7 @@ type operation struct {
 	nextURL     *url.URL      // The next URL to navigate to
 	thisNode    *node         // The node that is processing the operation
 	nextNode    *node         // The next node in the operation
+	prevNodePtr *node         // The pointer to the previous node in the operation
 	homeNodePtr *node         // The pointer to the home node
 	network     *nodes        // The nodes that form the operation network
 	request     *http.Request // Http request associated with the operation
@@ -102,16 +104,31 @@ func (o *operation) Language() string {
 
 // HomeNode returns the home node for the web browser. Used to ensure that the
 // first and last operation occur against a consistent node for the web browser.
+// TODO: What should the behavior be if the home node does not exist, what to do
+// with the error from getNode.
 func (o *operation) HomeNode() *node {
 	if o.homeNodePtr == nil {
 		if o.homeNode != "" {
-			o.homeNodePtr, _ = o.services.store.getNode(o.homeNode)
+			o.homeNodePtr = o.services.store.getNode(o.homeNode)
 		}
 		if o.homeNodePtr == nil {
 			o.homeNodePtr = o.network.active[0]
 		}
 	}
 	return o.homeNodePtr
+}
+
+// TODO Comment
+func (o *operation) PrevNode() *node {
+	if o.prevNodePtr == nil {
+		if o.prevNode != "" {
+			o.prevNodePtr = o.services.store.getNode(o.prevNode)
+		}
+		if o.prevNodePtr == nil {
+			o.prevNodePtr = o.network.active[0]
+		}
+	}
+	return o.prevNodePtr
 }
 
 // IsTimeStampValid true if the time is without the storage operation timeout,
@@ -172,10 +189,7 @@ func newOperationFromRequest(
 	var o *operation
 
 	// Get the node associated with the request.
-	t, err := s.store.getNode(r.Host)
-	if err != nil {
-		return nil, err
-	}
+	t := s.store.getNode(r.Host)
 	if t == nil {
 		return nil, fmt.Errorf("'%s' is not a registered Swift node", r.Host)
 	}
@@ -187,7 +201,7 @@ func newOperationFromRequest(
 			"Path '%s' contains insufficient segments",
 			r.URL.Path)
 	}
-	o, err = newOperationFromString(s, t, a[len(a)-1])
+	o, err := newOperationFromString(s, t, a[len(a)-1])
 	if err != nil {
 		return nil, err
 	}
@@ -411,6 +425,10 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = writeString(&b, o.prevNode)
+	if err != nil {
+		return nil, err
+	}
 	err = writeString(&b, o.homeNode)
 	if err != nil {
 		return nil, err
@@ -459,6 +477,10 @@ func (o *operation) setFromByteArray(d []byte) error {
 		return err
 	}
 	o.nodeCount, err = readByte(b)
+	if err != nil {
+		return err
+	}
+	o.prevNode, err = readString(b)
 	if err != nil {
 		return err
 	}

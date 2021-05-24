@@ -18,6 +18,7 @@ package swift
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"time"
 )
 
@@ -49,4 +50,27 @@ func newSecretFromKey(key string, timeStamp time.Time) (*secret, error) {
 		return nil, err
 	}
 	return &secret{timeStamp, key, x}, nil
+}
+
+func (s *secret) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"timeStamp": s.timeStamp,
+		"key":       s.key,
+	})
+}
+
+func (s *secret) UnmarshalJSON(b []byte) error {
+	var d map[string]interface{}
+	err := json.Unmarshal(b, &d)
+	if err != nil {
+		return err
+	}
+	s, err = newSecretFromKey(
+		d["key"].(string),
+		d["timeStamp"].(time.Time),
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -29,6 +29,7 @@ const (
 
 // Azure is a implementation of sws.Store for Microsoft's Azure table storage.
 type Azure struct {
+	name         string
 	timestamp    time.Time      // The last time the maps were refreshed
 	nodesTable   *storage.Table // Reference to the node table
 	secretsTable *storage.Table // Reference to the table of node secrets
@@ -37,8 +38,9 @@ type Azure struct {
 
 // NewAzure creates a new client for accessing table storage with the
 // credentials supplied.
-func NewAzure(account string, accessKey string) (*Azure, error) {
+func NewAzure(name string, account string, accessKey string) (*Azure, error) {
 	var a Azure
+	a.name = name
 	c, err := storage.NewBasicClient(account, accessKey)
 	if err != nil {
 		return nil, err
@@ -60,6 +62,14 @@ func NewAzure(account string, accessKey string) (*Azure, error) {
 		return nil, err
 	}
 	return &a, nil
+}
+
+func (a *Azure) getName() string {
+	return a.name
+}
+
+func (a *Azure) getReadOnly() bool {
+	return false
 }
 
 func (a *Azure) getNode(domain string) (*node, error) {
@@ -99,6 +109,19 @@ func (a *Azure) getAllNodes() ([]*node, error) {
 		return nil, err
 	}
 	return a.common.getAllNodes()
+}
+
+// iterateNodes calls the callback function for each node
+func (a *Azure) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range a.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (a *Azure) setNode(n *node) error {

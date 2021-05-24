@@ -19,6 +19,7 @@ package swift
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"hash/crc64"
 	"hash/fnv"
@@ -43,6 +44,7 @@ type node struct {
 	domain    string    // The domain name associated with the node
 	hash      uint64    // Number used to relate client IPs to node
 	created   time.Time // The time that the node first came online
+	starts    time.Time // The time that the node will begin operation
 	expires   time.Time // The time that the node will retire from the network
 	role      int       // The role the node has in the network
 	secrets   []*secret // All the secrets associated with the node
@@ -85,6 +87,7 @@ func newNode(
 	network string,
 	domain string,
 	created time.Time,
+	starts time.Time,
 	expires time.Time,
 	role int,
 	scrambleKey string) (*node, error) {
@@ -97,6 +100,7 @@ func newNode(
 		domain,
 		getHash(domain),
 		created,
+		starts,
 		expires,
 		role,
 		make([]*secret, 0),
@@ -186,6 +190,41 @@ func (n *node) DecryptAndDecode(d []byte) (*Results, error) {
 	}
 
 	return r, nil
+}
+
+func (n *node) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"network":   n.network,
+		"domain":    n.domain,
+		"created":   n.created,
+		"starts":    n.starts,
+		"expires":   n.expires,
+		"role":      n.role,
+		"secrets":   n.secrets,
+		"scrambler": n.scrambler,
+	})
+}
+
+func (n *node) UnmarshalJSON(b []byte) error {
+	var d map[string]interface{}
+	err := json.Unmarshal(b, &d)
+	if err != nil {
+		return err
+	}
+	n, err = newNode(
+		fmt.Sprintf("%s", d["network"]),
+		fmt.Sprintf("%s", d["domain"]),
+		d["created"].(time.Time),
+		d["starts"].(time.Time),
+		d["expires"].(time.Time),
+		d["role"].(int),
+		d["scrambler"].(string),
+	)
+	n.secrets = d["secrets"].([]*secret)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (n *node) getValueFromCookie(c *http.Cookie) (*pair, error) {

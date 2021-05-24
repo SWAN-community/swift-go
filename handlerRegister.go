@@ -93,6 +93,8 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		}
 
 		// Return the HTML page.
+		// TODO: Inform the user that the new node will not become active until
+		// the application restarts
 		sendHTMLTemplate(s, w, registerTemplate, &d)
 	}
 }
@@ -129,7 +131,7 @@ func storeNode(s *Services, d *Register) {
 
 	// Store the node and it successful mark the registration process as
 	// complete.
-	err = s.store.setNode(n)
+	err = s.store.setNodes(n)
 	if err != nil {
 		d.Error = err.Error()
 	} else {

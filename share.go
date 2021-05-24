@@ -25,44 +25,44 @@ import (
 	"time"
 )
 
-// share is a background service which polls known sharing nodes to fetch
-// shared node data. The data is decrypted and then new Nodes are added to the
-// Store.
-type share struct {
-	Ticker *time.Ticker
-	config Configuration
-	store  Store
-}
+// // share is a background service which polls known sharing nodes to fetch
+// // shared node data. The data is decrypted and then new Nodes are added to the
+// // Store.
+// type share struct {
+// 	Ticker *time.Ticker
+// 	config Configuration
+// 	store  storageManager
+// }
 
-// newShare creates a new instance of share
-func newShare(store Store, config Configuration) *share {
-	var s share
-	s.config = config
-	s.store = store
+// // newShare creates a new instance of share
+// func newShare(store storageManager, config Configuration) *share {
+// 	var s share
+// 	s.config = config
+// 	s.store = store
 
-	s.start()
+// 	s.start()
 
-	return &s
-}
+// 	return &s
+// }
 
-// start a goroutine which fetches shared nodes in the background.
-func (s *share) start() {
-	go fetchSharedNodes(s)
-}
+// // start a goroutine which fetches shared nodes in the background.
+// func (s *share) start() {
+// 	go fetchSharedNodes(s)
+// }
 
-// stop fetching shared nodes.
-func (s *share) stop() {
-	s.Ticker.Stop()
-}
+// // stop fetching shared nodes.
+// func (s *share) stop() {
+// 	s.Ticker.Stop()
+// }
 
 // cllShare makes a request to a sharing node to get shared node data and
 // decrypts the resulting byte array.
-func (s *share) callShare(n *node) ([]byte, error) {
+func callShare(n *node, scheme string) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 	}
 	url := url.URL{
-		Scheme: s.config.Scheme,
+		Scheme: scheme,
 		Host:   n.domain,
 		Path:   "/swift/api/v1/share",
 	}
@@ -135,30 +135,34 @@ func getNodesFromByteArray(data []byte) ([]*node, error) {
 	return nodes, nil
 }
 
-// fetchSharedNodes polls known sharing nodes to retrieve shared nodes.
-func fetchSharedNodes(s *share) {
-	d := 30 * time.Minute
-	if s.config.Debug {
-		d = 30 * time.Second
-	}
-	ticker := time.NewTicker(d)
-	s.Ticker = ticker
-	defer ticker.Stop()
-	for _ = range ticker.C {
-		nodes := s.store.getSharingNodes()
-		for _, n := range nodes {
-			b, err := s.callShare(n)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			nodes, err := getNodesFromByteArray(b)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			err = setNodes(s.store, nodes)
-			if err != nil {
-				log.Println(err.Error())
-			}
-		}
-	}
-}
+// // fetchSharedNodes polls known sharing nodes to retrieve shared nodes.
+// func fetchSharedNodes(s *share) {
+// 	d := 30 * time.Minute
+// 	if s.config.Debug {
+// 		d = 30 * time.Second
+// 	}
+// 	ticker := time.NewTicker(d)
+// 	s.Ticker = ticker
+// 	defer ticker.Stop()
+// 	for _ = range ticker.C {
+// 		nodes, err := s.store.getSharingNodes()
+// 		if err != nil {
+// 			log.Println(err.Error())
+// 			continue
+// 		}
+// 		for _, n := range nodes {
+// 			b, err := callShare(n, s.config.Scheme)
+// 			if err != nil {
+// 				log.Println(err.Error())
+// 			}
+// 			nodes, err := getNodesFromByteArray(b)
+// 			if err != nil {
+// 				log.Println(err.Error())
+// 			}
+// 			err = s.store.setNodes(nodes...)
+// 			if err != nil {
+// 				log.Println(err.Error())
+// 			}
+// 		}
+// 	}
+// }

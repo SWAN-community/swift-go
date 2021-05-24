@@ -29,15 +29,16 @@ import (
 
 // Firebase is a implementation of owid.Store for GCP's Firebase.
 type Firebase struct {
+	name      string
 	timestamp time.Time         // The last time the maps were refreshed
 	client    *firestore.Client // Firebase app
 	common
 }
 
 // NewFirebase creates a new instance of the Firebase structure
-func NewFirebase(project string) (*Firebase, error) {
+func NewFirebase(name string, project string) (*Firebase, error) {
 	var f Firebase
-
+	f.name = name
 	ctx := context.Background()
 	conf := &firebase.Config{ProjectID: project}
 	app, err := firebase.NewApp(ctx, conf)
@@ -57,43 +58,63 @@ func NewFirebase(project string) (*Firebase, error) {
 	return &f, nil
 }
 
-func (a *Firebase) getNode(domain string) (*node, error) {
-	n, err := a.common.getNode(domain)
+func (f *Firebase) getName() string {
+	return f.name
+}
+
+func (f *Firebase) getReadOnly() bool {
+	return false
+}
+
+func (f *Firebase) getNode(domain string) (*node, error) {
+	n, err := f.common.getNode(domain)
 	if err != nil {
 		return nil, err
 	}
 	if n == nil {
-		err = a.refresh()
+		err = f.refresh()
 		if err != nil {
 			return nil, err
 		}
-		n, err = a.common.getNode(domain)
+		n, err = f.common.getNode(domain)
 	}
 	return n, err
 }
 
-func (a *Firebase) getNodes(network string) (*nodes, error) {
-	ns, err := a.common.getNodes(network)
+func (f *Firebase) getNodes(network string) (*nodes, error) {
+	ns, err := f.common.getNodes(network)
 	if err != nil {
 		return nil, err
 	}
 	if ns == nil {
-		err = a.refresh()
+		err = f.refresh()
 		if err != nil {
 			return nil, err
 		}
-		ns, err = a.common.getNodes(network)
+		ns, err = f.common.getNodes(network)
 	}
 	return ns, err
 }
 
 // getAllNodes refreshes internal data and returns all nodes.
-func (a *Firebase) getAllNodes() ([]*node, error) {
-	err := a.refresh()
+func (f *Firebase) getAllNodes() ([]*node, error) {
+	err := f.refresh()
 	if err != nil {
 		return nil, err
 	}
-	return a.common.getAllNodes()
+	return f.common.getAllNodes()
+}
+
+func (f *Firebase) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range f.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (f *Firebase) setNode(n *node) error {
@@ -113,15 +134,15 @@ func (f *Firebase) setNode(n *node) error {
 	return err2
 }
 
-func (a *Firebase) refresh() error {
+func (f *Firebase) refresh() error {
 	nets := make(map[string]*nodes)
 
 	// Fetch the nodes and then add the secrets.
-	ns, err := a.fetchNodes()
+	ns, err := f.fetchNodes()
 	if err != nil {
 		return err
 	}
-	err = a.addSecrets(ns)
+	err = f.addSecrets(ns)
 	if err != nil {
 		return err
 	}
@@ -145,10 +166,10 @@ func (a *Firebase) refresh() error {
 
 	// In a single atomic operation update the reference to the networks and
 	// nodes.
-	a.mutex.Lock()
-	a.nodes = ns
-	a.networks = nets
-	a.mutex.Unlock()
+	f.mutex.Lock()
+	f.nodes = ns
+	f.networks = nets
+	f.mutex.Unlock()
 
 	return nil
 }

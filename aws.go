@@ -31,6 +31,7 @@ import (
 
 // AWS is a implementation of sws.Store for AWS DynamoDB.
 type AWS struct {
+	name      string
 	timestamp time.Time          // The last time the maps were refreshed
 	svc       *dynamodb.DynamoDB // Reference to the creators table
 	common
@@ -55,20 +56,18 @@ type SecretItem struct {
 }
 
 // NewAWS creates a new instance of the AWS structure
-func NewAWS() (*AWS, error) {
+func NewAWS(name string) (*AWS, error) {
 	var a AWS
-	var sess *session.Session
-
+	var s *session.Session
+	a.name = name
 	// Configure session with credentials from .aws/credentials or env and
 	// region from .aws/config or env
-	sess = session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
+	s = session.Must(session.NewSession())
 
-	if sess == nil {
+	if s == nil {
 		return nil, errors.New("AWS session is nil")
 	}
-	a.svc = dynamodb.New(sess)
+	a.svc = dynamodb.New(s)
 
 	_, err := a.awsCreateTables()
 	if err != nil {
@@ -281,6 +280,14 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 	return a.svc.CreateTable(secretsTableInput)
 }
 
+func (a *AWS) getName() string {
+	return a.name
+}
+
+func (a *AWS) getReadOnly() bool {
+	return false
+}
+
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
 func (a *AWS) getNode(domain string) (*node, error) {
@@ -321,6 +328,19 @@ func (a *AWS) getAllNodes() ([]*node, error) {
 		return nil, err
 	}
 	return a.common.getAllNodes()
+}
+
+// iterateNodes calls the callback function for each node
+func (a *AWS) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range a.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SetNode inserts or updates the node.

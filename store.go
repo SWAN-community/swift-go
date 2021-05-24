@@ -18,6 +18,7 @@ package swift
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 )
@@ -35,103 +36,90 @@ const (
 // Store interface for persistent data shared across instances operated.
 type Store interface {
 
-	// getNode takes a domain name and returns the associated node. If a node
-	// does not exist then nil is returned.
+	// getName returns the human readable name for the store
+	getName() string
+
+	// getNode return details of node if store knows about node
 	getNode(domain string) (*node, error)
 
-	// getNodes returns all the nodes associated with a network.
+	// getNodes returns nodes
 	getNodes(network string) (*nodes, error)
 
-	// setNode inserts or updates the node.
+	// getReadonly returns true if the store does not support inserts and updates.
+	getReadOnly() bool
+	// iterateNodes call the callback for every node
+	// n is the node
+	// s is the state for the function
+	iterateNodes(callback func(n *node, s interface{}) error, s interface{}) error
+
+	// setNode inserts or updates the node if the store supports inserts and
+	// updates
 	setNode(n *node) error
-
-	// TODO: should this include network param?
-	// getAllNodes returns all the nodes in the store.
-	getAllNodes() ([]*node, error)
-
-	// getSharingNodes return all nodes with the sharing role.
-	getSharingNodes() []*node
-}
-
-// setNodes inserts or updates the nodes
-func setNodes(l Store, nodes []*node) error {
-	currentNodes, err := l.getAllNodes()
-	if err != nil {
-		return err
-	}
-
-	for _, v := range nodes {
-		add := true
-		// check if node already exists
-		for _, n := range currentNodes {
-			if n.domain == v.domain &&
-				!v.expires.After(n.expires) {
-				add = false
-				break
-			}
-		}
-
-		// if should not add then continue
-		if !add {
-			continue
-		}
-
-		err := l.setNode(v)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // NewStore returns a work implementation of the Store interface for the
 // configuration supplied.
-func NewStore(swiftConfig Configuration) Store {
-	var swiftStore Store
-	var err error
+func NewStore(swiftConfig Configuration) []Store {
+	var swiftStores []Store
 
-	azureAccountName, azureAccountKey, gcpProject, swiftSecrets, swiftNodes :=
+	azureAccountName, azureAccountKey, gcpProject, swiftSecrets, swiftNodes, awsLoadConfig :=
 		os.Getenv("AZURE_STORAGE_ACCOUNT"),
 		os.Getenv("AZURE_STORAGE_ACCESS_KEY"),
 		os.Getenv("GCP_PROJECT"),
 		os.Getenv("SWIFT_SECRETS_FILE"),
-		os.Getenv("SWIFT_NODES_FILE")
+		os.Getenv("SWIFT_NODES_FILE"),
+		os.Getenv("AWS_SDK_LOAD_CONFIG")
 	if len(azureAccountName) > 0 || len(azureAccountKey) > 0 {
 		log.Printf("SWIFT: Using Azure Table Storage")
 		if len(azureAccountName) == 0 || len(azureAccountKey) == 0 {
 			panic(errors.New("Either the AZURE_STORAGE_ACCOUNT or " +
-				"AZURE_STORAGE_ACCESS_KEY environment variable is not set."))
+				"AZURE_STORAGE_ACCESS_KEY environment variable is not set"))
 		}
-		swiftStore, err = NewAzure(
+		swiftStore, err := NewAzure(
+			"default",
 			azureAccountName,
 			azureAccountKey)
 		if err != nil {
 			panic(err)
 		}
-	} else if len(gcpProject) > 0 {
+		swiftStores = append(swiftStores, swiftStore)
+	}
+	if len(gcpProject) > 0 {
 		log.Printf("SWIFT: Using Google Firebase")
-		swiftStore, err = NewFirebase(gcpProject)
+		swiftStore, err := NewFirebase("default", gcpProject)
 		if err != nil {
 			panic(err)
 		}
-	} else if len(swiftSecrets) > 0 &&
+		swiftStores = append(swiftStores, swiftStore)
+	}
+	if len(swiftSecrets) > 0 &&
 		len(swiftNodes) > 0 {
 		log.Printf("SWIFT: Using local storage")
-		swiftStore, err = NewLocalStore(swiftSecrets, swiftNodes)
+		swiftStore, err := NewLocalStore("default", swiftSecrets, swiftNodes)
 		if err != nil {
 			panic(err)
 		}
-	} else {
+		swiftStores = append(swiftStores, swiftStore)
+	}
+	if len(awsLoadConfig) > 0 {
 		log.Printf("SWIFT: Using AWS DynamoDB")
-		swiftStore, err = NewAWS()
+		swiftStore, err := NewAWS("default")
 		if err != nil {
 			panic(err)
 		}
+		swiftStores = append(swiftStores, swiftStore)
 	}
 
-	if swiftStore == nil {
-		panic(errors.New("SWIFT: store not configured"))
+	// TODO: verbose instruction of what to do if no stores available.
+	if len(swiftStores) == 0 {
+		panic(fmt.Errorf("SWIFT: no store has been configured. " +
+			"Provide details for store by specifying one of more sets of " +
+			"environment variables\r\n: " +
+			"(1) Azure Storage account details 'AZURE_STORAGE_ACCOUNT' & 'AZURE_STORAGE_ACCESS_KEY'\r\n" +
+			"(2) GCP \r\n" +
+			"(3) Local \r\n" +
+			"(4) AWS "))
 	}
 
-	return swiftStore
+	return swiftStores
 }

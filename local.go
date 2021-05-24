@@ -28,6 +28,7 @@ import (
 // Local store implementation for SWIFT - data is stored in maps in memory and
 // persisted on disk in JSON files.
 type Local struct {
+	name        string    //
 	timestamp   time.Time // The last time the maps were refreshed
 	nodesFile   string    // Reference to the node table
 	secretsFile string    // Reference to the table of node secrets
@@ -42,9 +43,10 @@ type secretItem struct {
 
 // NewLocalStore creates a new instance of Local and configures the paths for
 // the persistent JSON files.
-func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
+func NewLocalStore(name string, secretsFile string, nodesFile string) (*Local, error) {
 	var l Local
 
+	l.name = name
 	l.nodesFile = nodesFile
 	l.secretsFile = secretsFile
 
@@ -54,6 +56,14 @@ func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
 		return nil, err
 	}
 	return &l, nil
+}
+
+func (l *Local) getName() string {
+	return l.name
+}
+
+func (l *Local) getReadOnly() bool {
+	return false
 }
 
 // GetNode takes a domain name and returns the associated node. If a node
@@ -96,6 +106,19 @@ func (l *Local) getAllNodes() ([]*node, error) {
 		return nil, err
 	}
 	return l.common.getAllNodes()
+}
+
+// iterateNodes calls the callback function for each node
+func (l *Local) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range l.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SetNode inserts or updates the node.
