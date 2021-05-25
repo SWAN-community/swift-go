@@ -124,9 +124,6 @@ func (o *operation) PrevNode() *node {
 		if o.prevNode != "" {
 			o.prevNodePtr = o.services.store.getNode(o.prevNode)
 		}
-		if o.prevNodePtr == nil {
-			o.prevNodePtr = o.network.active[0]
-		}
 	}
 	return o.prevNodePtr
 }

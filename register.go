@@ -26,6 +26,7 @@ type Register struct {
 	Services      *Services
 	Domain        string
 	Network       string
+	Starts        time.Time
 	Expires       time.Time
 	Role          int
 	Error         string
@@ -40,6 +41,11 @@ type Register struct {
 // ExpiresString returns the expires date as a string
 func (r *Register) ExpiresString() string {
 	return r.Expires.Format("2006-01-02")
+}
+
+// StartsString returns the start date as a string
+func (r *Register) StartsString() string {
+	return r.Starts.Format("2006-01-02")
 }
 
 // Language returns the language code associated with the web page.

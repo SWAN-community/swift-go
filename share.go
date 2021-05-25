@@ -25,37 +25,7 @@ import (
 	"time"
 )
 
-// // share is a background service which polls known sharing nodes to fetch
-// // shared node data. The data is decrypted and then new Nodes are added to the
-// // Store.
-// type share struct {
-// 	Ticker *time.Ticker
-// 	config Configuration
-// 	store  storageManager
-// }
-
-// // newShare creates a new instance of share
-// func newShare(store storageManager, config Configuration) *share {
-// 	var s share
-// 	s.config = config
-// 	s.store = store
-
-// 	s.start()
-
-// 	return &s
-// }
-
-// // start a goroutine which fetches shared nodes in the background.
-// func (s *share) start() {
-// 	go fetchSharedNodes(s)
-// }
-
-// // stop fetching shared nodes.
-// func (s *share) stop() {
-// 	s.Ticker.Stop()
-// }
-
-// cllShare makes a request to a sharing node to get shared node data and
+// callShare makes a request to a sharing node to get shared node data and
 // decrypts the resulting byte array.
 func callShare(n *node, scheme string) ([]byte, error) {
 	client := &http.Client{
@@ -109,6 +79,7 @@ func getNodesFromByteArray(data []byte) ([]*node, error) {
 			ni.Network,
 			ni.Domain,
 			ni.Created,
+			ni.Starts,
 			ni.Expires,
 			ni.Role,
 			ni.ScrambleKey)
@@ -134,35 +105,3 @@ func getNodesFromByteArray(data []byte) ([]*node, error) {
 
 	return nodes, nil
 }
-
-// // fetchSharedNodes polls known sharing nodes to retrieve shared nodes.
-// func fetchSharedNodes(s *share) {
-// 	d := 30 * time.Minute
-// 	if s.config.Debug {
-// 		d = 30 * time.Second
-// 	}
-// 	ticker := time.NewTicker(d)
-// 	s.Ticker = ticker
-// 	defer ticker.Stop()
-// 	for _ = range ticker.C {
-// 		nodes, err := s.store.getSharingNodes()
-// 		if err != nil {
-// 			log.Println(err.Error())
-// 			continue
-// 		}
-// 		for _, n := range nodes {
-// 			b, err := callShare(n, s.config.Scheme)
-// 			if err != nil {
-// 				log.Println(err.Error())
-// 			}
-// 			nodes, err := getNodesFromByteArray(b)
-// 			if err != nil {
-// 				log.Println(err.Error())
-// 			}
-// 			err = s.store.setNodes(nodes...)
-// 			if err != nil {
-// 				log.Println(err.Error())
-// 			}
-// 		}
-// 	}
-// }

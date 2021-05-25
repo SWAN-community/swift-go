@@ -144,6 +144,7 @@ func (l *Local) setNode(n *node) error {
 		Network:     n.network,
 		Domain:      n.domain,
 		Created:     n.created,
+		Starts:      n.starts,
 		Expires:     n.expires,
 		Role:        n.role,
 		ScrambleKey: n.scrambler.key,
@@ -265,6 +266,7 @@ func (l *Local) fetchNodes() (map[string]*node, error) {
 			n.Network,
 			n.Domain,
 			n.Created,
+			n.Starts,
 			n.Expires,
 			n.Role,
 			n.ScrambleKey)

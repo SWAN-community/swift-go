@@ -127,6 +127,7 @@ func (f *Firebase) setNode(n *node) error {
 		n.network,
 		n.domain,
 		n.created,
+		n.starts,
 		n.expires.Unix(),
 		n.role,
 		n.scrambler.key}
@@ -223,6 +224,7 @@ func (f *Firebase) fetchNodes() (map[string]*node, error) {
 			item.Network,
 			item.Domain,
 			item.Created,
+			item.Starts,
 			time.Unix(item.Expires, 0).UTC(),
 			item.Role,
 			item.ScramblerKey)

@@ -41,7 +41,8 @@ type AWS struct {
 type NodeItem struct {
 	Network      string    // The name of the network the node belongs to
 	Domain       string    // The domain name associated with the node
-	Created      time.Time // The time that the node first came online
+	Created      time.Time // The time that the node was created
+	Starts       time.Time // The time that the node goes online
 	Expires      int64     `json:"expires"` // The time that the node will retire from the network
 	Role         int       // The role the node has in the network
 	ScramblerKey string    // Secret used to scramble data with fixed nonce
@@ -353,6 +354,7 @@ func (a *AWS) setNode(n *node) error {
 		n.network,
 		n.domain,
 		n.created,
+		n.starts,
 		n.expires.Unix(),
 		n.role,
 		n.scrambler.key}
@@ -436,22 +438,23 @@ func (a *AWS) fetchNodes() (map[string]*node, error) {
 	// Iterate over the records creating nodes and adding them to the networks
 	// map.
 	for _, i := range result.Items {
-		nodeItem := NodeItem{}
+		ni := NodeItem{}
 
-		err = dynamodbattribute.UnmarshalMap(i, &nodeItem)
+		err = dynamodbattribute.UnmarshalMap(i, &ni)
 		if err != nil {
 			fmt.Println("Got error un-marshalling:")
 			fmt.Println(err.Error())
 			return nil, err
 		}
 
-		ns[nodeItem.Domain], err = newNode(
-			nodeItem.Network,
-			nodeItem.Domain,
-			nodeItem.Created,
-			time.Unix(nodeItem.Expires, 0).UTC(),
-			nodeItem.Role,
-			nodeItem.ScramblerKey)
+		ns[ni.Domain], err = newNode(
+			ni.Network,
+			ni.Domain,
+			ni.Created,
+			ni.Starts,
+			time.Unix(ni.Expires, 0).UTC(),
+			ni.Role,
+			ni.ScramblerKey)
 		if err != nil {
 			return nil, err
 		}

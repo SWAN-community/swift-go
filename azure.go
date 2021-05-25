@@ -242,6 +242,7 @@ func (a *Azure) fetchNodes() (map[string]*node, error) {
 			i.PartitionKey,
 			i.RowKey,
 			i.TimeStamp,
+			i.Properties[startsFieldName].(time.Time),
 			i.Properties[expiresFieldName].(time.Time),
 			int(i.Properties[roleFieldName].(float64)),
 			i.Properties[scramblerKeyFieldName].(string))

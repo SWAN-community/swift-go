@@ -26,6 +26,10 @@ import (
 
 // Configuration maps to the appsettings.json settings file.
 type Configuration struct {
+	// The number of seconds between polling operations for alive checks. This
+	// is supplement to the passive check so if a node has not been accessed for
+	// more than this then it is eligible for polling.
+	AlivePollingSeconds int `json:"alivePollingSeconds"`
 	// The number of seconds from creation of an operation that it is valid for.
 	// Used to prevent repeated processing of the same operation.
 	StorageOperationTimeout int `json:"storageOperationTimeout"`

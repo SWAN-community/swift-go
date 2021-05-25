@@ -50,6 +50,7 @@ type node struct {
 	secrets   []*secret // All the secrets associated with the node
 	scrambler *secret   // Secret used to scramble data with fixed nonce
 	nonce     []byte    // Fixed nonce used with the scrambler
+	accessed  time.Time // The time the node was last accessed
 	alive     bool      // True if the node is reachable via a HTTP request
 }
 
@@ -59,6 +60,7 @@ type nodeItem struct {
 	Network     string
 	Domain      string
 	Created     time.Time
+	Starts      time.Time
 	Expires     time.Time
 	Role        int
 	ScrambleKey string
@@ -106,6 +108,7 @@ func newNode(
 		make([]*secret, 0),
 		s,
 		makeNonce(s, []byte(domain)),
+		time.Time{},
 		false}
 	return &n, nil
 }
@@ -238,12 +241,12 @@ func (n *node) getValueFromCookie(c *http.Cookie) (*pair, error) {
 		return nil, err
 	}
 	if len(d) == 0 {
-		return nil, fmt.Errorf("Value for cookie '%s' zero length", c.Name)
+		return nil, fmt.Errorf("value for cookie '%s' zero length", c.Name)
 	}
 	b := bytes.NewBuffer(d)
 	p.cookieWriteTime, err = readTime(b)
 	if err != nil {
-		return nil, fmt.Errorf("Time for cookie '%s' invalid", c.Name)
+		return nil, fmt.Errorf("time for cookie '%s' invalid", c.Name)
 	}
 	err = p.setFromBuffer(b)
 	if err != nil {
@@ -266,7 +269,7 @@ func (n *node) getSecret() (*secret, error) {
 	if len(n.secrets) > 0 {
 		return n.secrets[0], nil
 	}
-	return nil, fmt.Errorf("No secrets for node '%s'", n.domain)
+	return nil, fmt.Errorf("no secrets for node '%s'", n.domain)
 }
 
 func (n *node) sortSecrets() {

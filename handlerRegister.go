@@ -28,21 +28,19 @@ import (
 // the domain has been registered in the storage service.
 func HandlerRegister(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
 
 		var d Register
 		d.request = r
 		d.Services = s
 		d.Domain = r.Host
+		d.Starts = time.Now().UTC().AddDate(0, 0, 1)
 		d.Network = ""
 		d.Expires = time.Now().UTC().AddDate(0, 3, 0)
 		d.Role = roleStorage
 
 		// Check that the domain has not already been registered.
-		n, err := s.store.getNode(r.Host)
-		if err != nil {
-			returnServerError(s, w, err)
-			return
-		}
+		n := s.store.getNode(r.Host)
 		if n != nil {
 			return
 		}
@@ -113,6 +111,7 @@ func storeNode(s *Services, d *Register) {
 		d.Network,
 		d.Domain,
 		time.Now().UTC(),
+		d.Starts,
 		d.Expires,
 		d.Role,
 		scrambler.key)

@@ -24,14 +24,10 @@ import (
 
 func HandlerShare(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
 
 		// Get the node associated with the request.
-		a, err := s.store.getNode(r.Host)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
-			return
-		}
-
+		a := s.store.getNode(r.Host)
 		if a == nil {
 			err = fmt.Errorf("host '%s' is not a SWIFT node", r.Host)
 			returnAPIError(s, w, err, http.StatusBadRequest)
@@ -65,6 +61,7 @@ func HandlerShare(s *Services) http.HandlerFunc {
 					Network:     n.network,
 					Domain:      n.domain,
 					Created:     n.created,
+					Starts:      n.starts,
 					Expires:     n.expires,
 					Role:        n.role,
 					ScrambleKey: n.scrambler.key,

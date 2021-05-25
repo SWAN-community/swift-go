@@ -27,7 +27,6 @@ type Services struct {
 	store   storageManager  // Instance of storage service for node data
 	browser BrowserDetector // Service to provide browser warnings
 	access  Access          // Instance of the access control interface
-	share   *share          // instance of Share service
 }
 
 // NewServices a set of services to use with SWIFT. These provide defaults via
@@ -43,7 +42,6 @@ func NewServices(
 	s.store = store
 	s.access = access
 	s.browser = browser
-	s.share = newShare(store, config)
 	return &s
 }
 
@@ -81,11 +79,7 @@ func (s *Services) getStorageNode(r *http.Request) (*node, error) {
 func (s *Services) getNodeFromRequest(h string, q int) (*node, error) {
 
 	// Get the node associated with the request.
-	n, err := s.store.getNode(h)
-	if err != nil {
-		return nil, err
-	}
-
+	n := s.store.getNode(h)
 	// Verify that a node was found.
 	if n == nil {
 		return nil, fmt.Errorf("No access node for '%s'", h)

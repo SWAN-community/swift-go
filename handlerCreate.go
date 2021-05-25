@@ -99,12 +99,10 @@ func SetHomeNodeHeaders(r *http.Request, q *url.Values) {
 // h the name of the SWIFT internet domain
 // q the form paramters to be used to create the storage operation URL
 func Create(s *Services, h string, q url.Values) (string, error) {
+	var err error
 
 	// Get the node associated with the request.
-	a, err := s.store.getNode(h)
-	if err != nil {
-		return "", err
-	}
+	a := s.store.getNode(h)
 	if a == nil {
 		return "", fmt.Errorf("Host '%s' is not a SWIFT node", h)
 	}
@@ -328,10 +326,7 @@ func setAccessNode(s *Services, o *operation, q *url.Values, a *node) error {
 	if v == "" {
 		o.accessNode = a.domain
 	} else {
-		n, err := s.store.getNode(v)
-		if err != nil {
-			return err
-		}
+		n := s.store.getNode(v)
 		if n == nil {
 			return fmt.Errorf("'%s' is not a valid access node", v)
 		}

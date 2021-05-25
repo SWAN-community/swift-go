@@ -31,6 +31,7 @@ func AddHandlers(
 	services *Services,
 	malformedHandler func(w http.ResponseWriter, r *http.Request)) {
 	http.HandleFunc("/swift/register", HandlerRegister(services))
+	http.HandleFunc("/swift/api/v1/alive", handlerAlive(services))
 	http.HandleFunc("/swift/api/v1/create", HandlerCreate(services))
 	http.HandleFunc("/swift/api/v1/encrypt", HandlerEncrypt(services))
 	http.HandleFunc("/swift/api/v1/decrypt", HandlerDecrypt(services))

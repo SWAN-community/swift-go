@@ -29,6 +29,7 @@ const (
 	domainFieldName       = "Domain"       // The domain of the node
 	networkFieldName      = "Network"      // The network of the node
 	roleFieldName         = "role"         // The role of the node
+	startsFieldName       = "starts"       // When the node starts operation
 	expiresFieldName      = "expires"      // When the node expires
 	scramblerKeyFieldName = "ScramblerKey" // Used to scramble table and key names
 )

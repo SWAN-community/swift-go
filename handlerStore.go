@@ -51,6 +51,16 @@ func HandlerStore(
 			return
 		}
 
+		// If the previous node is set then update last accessed time and
+		// confirm it is alive by virtue of being the previous node.
+		if o.PrevNode() != nil {
+			o.prevNodePtr.accessed = time.Now().UTC()
+			o.prevNodePtr.alive = true
+			// Update the operation's previous node with this node for the
+			// next node in the chain.
+			o.prevNode = o.thisNode.domain
+		}
+
 		// If there are still more nodes to try and the operation is not out of
 		// time then select the next node.
 		if o.nodesVisited < o.nodeCount && o.IsTimeStampValid() {
@@ -71,7 +81,8 @@ func HandlerStore(
 					o.nextNode = o.network.getRandomNode(func(i *node) bool {
 						return i.role == roleStorage &&
 							i != o.thisNode &&
-							i.domain != o.HomeNode().domain
+							i.domain != o.HomeNode().domain &&
+							i.starts.After(time.Now().UTC())
 					})
 					c--
 				}
@@ -107,6 +118,7 @@ func HandlerStore(
 		} else {
 			o.storeDone(s, w, r)
 		}
+
 	}
 }
 

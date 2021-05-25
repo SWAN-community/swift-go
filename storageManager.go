@@ -25,10 +25,14 @@ const MaxStores = 100
 
 // storageManager... TODO
 type storageManager struct {
-	// A readonly array of Stores populated when the storage manager is created
+	// stores is a readonly array of Stores populated when the storage manager
+	// is created
 	stores []Store
-	// nodeStore is a map of nodes (by domain) to the associated store
+	// nodes is a readonly map of nodes (by domain) to the associated nodes
 	nodes map[string]*node
+	// alive is a background service which polls nodes periodically to ensure
+	// that they are alive
+	alive *alive
 }
 
 // NewStorageManager...TODO
@@ -38,25 +42,26 @@ func NewStorageManager(c Configuration, sts ...Store) storageManager {
 	checkedNodes := make(map[string]bool)
 
 	for i := 0; i < len(sts); i++ {
-		// Check the maximum number of stores has not been reached.
+		// check the maximum number of stores has not been reached
 		if len(sts) > MaxStores {
-			panic(fmt.Errorf("too many stores have been configured, max is number of stores %d", MaxStores))
+			panic(fmt.Errorf("too many stores have been configured, max is "+
+				"number of stores %d", MaxStores))
 		}
 
-		// get the sharing nodes from this store.
+		// get the sharing nodes from this store
 		ns, err := getSharingNodesFromStore(sts[i])
 		if err != nil {
 			panic(err)
 		}
 		for _, n := range ns {
-			// skip if this sharing node has been evaluated already.
+			// skip if this sharing node has been evaluated already
 			if checkedNodes[n.domain] {
 				continue
 			} else {
 				checkedNodes[n.domain] = true
 			}
 
-			// get all the nodes the shaing node knows about.
+			// get all the nodes the shaing node knows about
 			b, err := callShare(n, c.Scheme)
 			if err != nil {
 				log.Println(err.Error())
@@ -65,14 +70,14 @@ func NewStorageManager(c Configuration, sts ...Store) storageManager {
 			if err != nil {
 				log.Println(err.Error())
 			}
-			// check if shared nodes contain any storage nodes.
+			// check if shared nodes contain any storage nodes
 			addStore := false
 			for _, sn := range nodes {
 				if addStore = sn.role == roleStorage; addStore {
 					break
 				}
 			}
-			// create a new readonly store.
+			// create a new readonly store
 			if addStore {
 				v := newVolatile(
 					fmt.Sprintf("v-%d", i),
@@ -84,13 +89,18 @@ func NewStorageManager(c Configuration, sts ...Store) storageManager {
 
 		sm.stores = append(sm.stores, sts[i])
 	}
+
+	// create new alive service
+	sm.alive = newAlive(c, sm)
+
 	return sm
 }
 
+// getNode gets the node associated with the domain.
+func (sm *storageManager) getNode(domain string) *node { return sm.nodes[domain] }
+
 // getStores returns an array of all the stores.
-func (sm *storageManager) getStores() []Store {
-	return sm.stores
-}
+func (sm *storageManager) getStores() []Store { return sm.stores }
 
 // GetAccessNode returns an access node for the network, or null if there is no
 // access node available.
@@ -111,32 +121,6 @@ func (sm *storageManager) GetAccessNode(network string) (string, error) {
 	return n.domain, nil
 }
 
-// getNode gets the store associated with the node and returns details of node
-// if store knows about node. If no store is associated with the node then all
-// the stores are queried.
-func (sm *storageManager) getNode(domain string) *node {
-
-	// get the node
-	return sm.nodes[domain]
-
-	// // if there is no store associated with the requested node then check all
-	// // stores.
-	// if s == nil {
-	// 	return sm.getNodeFromAll(domain)
-	// }
-
-	// // get the node details from the store.
-	// n, err := s.getNode(domain)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // return an error if no node was found.
-	// if n == nil {
-	// 	return nil, fmt.Errorf("node '%s' not found", domain)
-	// }
-	// return n, nil
-}
-
 // getNodes returns the nodes object
 func (sm *storageManager) getNodes(network string) (*nodes, error) {
 	for _, s := range sm.stores {
@@ -149,6 +133,26 @@ func (sm *storageManager) getNodes(network string) (*nodes, error) {
 		}
 	}
 	return nil, nil
+}
+
+// getAllNodes returns all the nodes for all networks.
+func (sm *storageManager) getAllActiveNodes() ([]*node, error) {
+	var n []*node
+	for _, s := range sm.stores {
+		err := s.iterateNodes(func(n *node, s interface{}) error {
+			st, ok := s.(*[]*node)
+			if ok && n.alive {
+				*st = append(*st, n)
+				return nil
+			}
+			return fmt.Errorf("%v not a []*node", s)
+		}, &n)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	return n, nil
 }
 
 // getAllNodes returns all the nodes for all networks.

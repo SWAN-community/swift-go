@@ -205,6 +205,19 @@ var registerTemplate = newHTMLTemplate("register", `
 		</tr>
 		<tr>
 			<td>
+				<p><label for="starts">Starts</label></p>
+			</td>
+			<td>
+				<p><input type="date" id="starts" name="starts" value="{{.StartsString}}" {{if .ReadOnly}}disabled{{end}}></p>
+			</td>
+			<td>
+				{{if .DisplayErrors}}
+				<p>{{.StartsError}}</p>
+				{{end}}
+			</td>
+		</tr>
+		<tr>
+			<td>
 				<p><label for="0">Access Node</label></p>
 			</td>
 			<td>
