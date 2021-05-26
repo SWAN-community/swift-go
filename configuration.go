@@ -33,6 +33,8 @@ type Configuration struct {
 	// The number of seconds from creation of an operation that it is valid for.
 	// Used to prevent repeated processing of the same operation.
 	StorageOperationTimeout int `json:"storageOperationTimeout"`
+	// TODO
+	StorageManagerRefreshMinutes int `json:"storageManagerRefreshMinutes"`
 	// The length of time in seconds values stored in SWIFT nodes can be relied
 	// upon to be current. Used by the home node to determine if it should
 	// consult other nodes in the network before returning it's current values.

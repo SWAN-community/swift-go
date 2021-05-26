@@ -24,7 +24,7 @@ import (
 // Services references all the information needed for every method.
 type Services struct {
 	config  Configuration   // Configuration used by the server.
-	store   storageManager  // Instance of storage service for node data
+	store   storageService  // Instance of storage service for node data
 	browser BrowserDetector // Service to provide browser warnings
 	access  Access          // Instance of the access control interface
 }
@@ -34,7 +34,7 @@ type Services struct {
 // parameter.
 func NewServices(
 	config Configuration,
-	store storageManager,
+	store storageService,
 	access Access,
 	browser BrowserDetector) *Services {
 	var s Services

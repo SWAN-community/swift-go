@@ -364,6 +364,47 @@ var s=document.createElement("script");
 s.innerText="{{.Table}}Complete('{{.Results}}')";
 document.currentScript.parentNode.appendChild(s);`)
 
+var swiftNodesTemplate = newHTMLTemplate("swiftNodes", `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<link rel="icon" href="data:;base64,=">
+	<style>
+	table, th, td {
+		border: 1px solid black;
+	}
+	</style>
+</head>
+<body>
+<table>
+    <tr>
+        <th>Network</th>
+        <th>Domain</th>
+        <th>Created</th>
+        <th>Starts</th>
+        <th>Expires</th>
+        <th>Role</th>
+        <th>Accessed</th>
+        <th>Alive</th>
+    </tr>
+    {{ range .NodeViewItems }}
+        <tr>
+            <td>{{ .Network }}</td>
+            <td>{{ .Domain }}</td>
+            <td>{{ .Created }}</td>
+            <td>{{ .Starts }}</td>
+            <td>{{ .Expires }}</td>
+            <td>{{ .Role }}</td>
+            <td>{{ .Accessed }}</td>
+            <td>{{ .Alive }}</td>
+        </tr>
+    {{ end}}
+</table>
+</body>
+</html>
+`)
+
 func newHTMLTemplate(n string, h string) *template.Template {
 	c := removeHTMLWhiteSpace(h)
 	return template.Must(template.New(n).Parse(c))

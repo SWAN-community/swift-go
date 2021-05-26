@@ -26,26 +26,27 @@ import (
 	"time"
 )
 
-// alive is a
-type alive struct {
+// aliveService is a
+type aliveService struct {
 	ticker          *time.Ticker
 	config          Configuration  // swift config
 	store           storageManager // swift storage manager
 	pollingInterval time.Duration
 }
 
-// newAlive creates a new instance of type alive and starts the background
+// newAliveService creates a new instance of type alive and starts the background
 // polling service,
-func newAlive(c Configuration, s storageManager) *alive {
-	var a alive
+func newAliveService(c Configuration, s storageManager) *aliveService {
+	var a aliveService
 
 	a.config = c
 	a.store = s
 
 	if a.config.AlivePollingSeconds == 0 {
-		panic("'alivePollingSeconds' not configured")
+		panic("configured for 'alivePollingSeconds' is not valid, please set to " +
+			"a positive integer")
 	}
-	a.pollingInterval = time.Duration(a.config.AlivePollingSeconds * 1000)
+	a.pollingInterval = time.Duration(time.Duration(a.config.AlivePollingSeconds) * time.Second)
 
 	// start the polling service
 	a.start()
@@ -54,16 +55,16 @@ func newAlive(c Configuration, s storageManager) *alive {
 }
 
 // start a goroutine which checks nodes are alive in the background.
-func (a *alive) start() {
+func (a *aliveService) start() {
 	go a.checkAlive()
 }
 
 // stop checking if nodes are alive.
-func (a *alive) stop() {
+func (a *aliveService) stop() {
 	a.ticker.Stop()
 }
 
-func (a *alive) checkAlive() {
+func (a *aliveService) checkAlive() {
 	ticker := time.NewTicker(a.pollingInterval)
 	a.ticker = ticker
 	defer ticker.Stop()
@@ -72,15 +73,21 @@ func (a *alive) checkAlive() {
 			if time.Now().UTC().Sub(n.accessed) >= a.pollingInterval {
 				nonce, err := nonce()
 				if err != nil {
-					log.Println("SWIFT: could not generate nonce, alive failed "+
-						"to check node '%s'\r\n", n.domain)
+					if a.config.Debug {
+						log.Printf("SWIFT: could not generate nonce, alive failed "+
+							"to check node '%s'\r\n", n.domain)
+						log.Println(err.Error())
+					}
 					n.alive = false
 					continue
 				}
 				b, err := a.callAlive(n, nonce)
 				if err != nil {
-					log.Printf("SWIFT: alive check failed for node "+
-						"'%s'\r\n", n.domain)
+					if a.config.Debug {
+						log.Printf("SWIFT: alive check failed for node "+
+							"'%s'\r\n", n.domain)
+						log.Println(err.Error())
+					}
 					n.alive = false
 					continue
 				}
@@ -95,7 +102,7 @@ func (a *alive) checkAlive() {
 	}
 }
 
-func (a *alive) callAlive(n *node, data []byte) ([]byte, error) {
+func (a *aliveService) callAlive(n *node, data []byte) ([]byte, error) {
 	client := &http.Client{
 		Timeout: a.pollingInterval,
 	}

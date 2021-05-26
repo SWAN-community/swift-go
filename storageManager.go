@@ -21,6 +21,7 @@ import (
 	"log"
 )
 
+// TODO make configurable
 const MaxStores = 100
 
 // storageManager... TODO
@@ -32,11 +33,11 @@ type storageManager struct {
 	nodes map[string]*node
 	// alive is a background service which polls nodes periodically to ensure
 	// that they are alive
-	alive *alive
+	alive *aliveService
 }
 
 // NewStorageManager...TODO
-func NewStorageManager(c Configuration, sts ...Store) storageManager {
+func newStorageManager(c Configuration, sts ...Store) (*storageManager, error) {
 	var sm storageManager
 	sm.nodes = make(map[string]*node)
 	checkedNodes := make(map[string]bool)
@@ -44,14 +45,14 @@ func NewStorageManager(c Configuration, sts ...Store) storageManager {
 	for i := 0; i < len(sts); i++ {
 		// check the maximum number of stores has not been reached
 		if len(sts) > MaxStores {
-			panic(fmt.Errorf("too many stores have been configured, max is "+
-				"number of stores %d", MaxStores))
+			return nil, fmt.Errorf("too many stores have been configured, max is "+
+				"number of stores %d", MaxStores)
 		}
 
 		// get the sharing nodes from this store
 		ns, err := getSharingNodesFromStore(sts[i])
 		if err != nil {
-			panic(err)
+			log.Println(err.Error())
 		}
 		for _, n := range ns {
 			// skip if this sharing node has been evaluated already
@@ -87,13 +88,27 @@ func NewStorageManager(c Configuration, sts ...Store) storageManager {
 			}
 		}
 
+		err = sts[i].iterateNodes(addNode, sm.nodes)
+		if err != nil {
+			panic(err)
+		}
+
 		sm.stores = append(sm.stores, sts[i])
 	}
 
 	// create new alive service
-	sm.alive = newAlive(c, sm)
+	sm.alive = newAliveService(c, sm)
 
-	return sm
+	return &sm, nil
+}
+
+func addNode(n *node, s interface{}) error {
+	st, ok := s.(map[string]*node)
+	if ok {
+		st[n.domain] = n
+		return nil
+	}
+	return nil
 }
 
 // getNode gets the node associated with the domain.

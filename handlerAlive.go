@@ -33,11 +33,11 @@ func handlerAlive(s *Services) http.HandlerFunc {
 		}
 
 		// Get the node associated with the request.
-		n, err := s.GetAccessNodeForHost(r.Host)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
-			return
-		}
+		n := s.store.getNode(r.Host)
+		// if err != nil {
+		// 	returnAPIError(s, w, err, http.StatusInternalServerError)
+		// 	return
+		// }
 
 		// Decode the body to form the byte array.
 		nonce, err := n.Decrypt(body)
