@@ -23,6 +23,10 @@ import (
 	"time"
 )
 
+// storageService type is a background service which periodically refreshes the
+// referenced storage manager. The storageService maintains a reference to the
+// originally configured stores, these are used to initialize a new storage
+// manager on each refresh.
 type storageService struct {
 	config Configuration   // Swift configuration
 	store  *storageManager // Storage manager reference
@@ -31,7 +35,9 @@ type storageService struct {
 	mutex  *sync.Mutex     // mutex used to lock storage manager when updating
 }
 
-// NewStorageService
+// NewStorageService creates a new instance of storageService and creates the
+// initial instance of storageManager, a go routine is then started which
+// will periodically refresh the storageManager reference with a new instance.
 func NewStorageService(c Configuration, sts ...Store) storageService {
 	var svc storageService
 	var err error
@@ -52,6 +58,9 @@ func NewStorageService(c Configuration, sts ...Store) storageService {
 	return svc
 }
 
+// startStorageService creates a new ticker which, every time it executes,
+// creates a new instance of storageManager and updates the reference in the
+// storageService.
 func (svc *storageService) startStorageService() {
 	if svc.config.StorageManagerRefreshMinutes <= 0 {
 		panic(fmt.Errorf("configuration for 'storageManagerRefreshMinutes' " +
@@ -77,18 +86,22 @@ func (svc *storageService) startStorageService() {
 	}
 }
 
+// getNode abstracts calls to storageManager.getNode
 func (svc *storageService) getNode(domain string) *node {
 	return svc.store.getNode(domain)
 }
 
+// getNodes abstracts calls to storageManager.getNodes
 func (svc *storageService) getNodes(network string) (*nodes, error) {
 	return svc.store.getNodes(network)
 }
 
+// getAllNodes abstracts calls to storageManager.getAllNodes
 func (svc *storageService) getAllNodes() ([]*node, error) {
 	return svc.store.getAllNodes()
 }
 
-func (svc *storageService) setNodes(ns ...*node) error {
-	return svc.store.setNodes(ns...)
+// setNodes abstracts calls to storageManager.setNodes
+func (svc *storageService) setNodes(store string, ns ...*node) error {
+	return svc.store.setNodes(store, ns...)
 }
