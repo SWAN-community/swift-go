@@ -45,7 +45,9 @@ func (nv *NodeViews) NodeViewItems() []NodeView {
 	return nv.Nodes
 }
 
-// HandlerNodes
+// HandlerNodes is a handler that returns a list of all the known nodes, each
+// node is converted into a NodeView item which is then used to populate an HTML
+// template.
 func HandlerNodes(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 

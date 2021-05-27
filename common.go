@@ -59,13 +59,13 @@ func (c *common) GetAccessNode(network string) (string, error) {
 		return "", err
 	}
 	if ns == nil {
-		return "", fmt.Errorf("No access nodes for network '%s'", network)
+		return "", fmt.Errorf("no access nodes for network '%s'", network)
 	}
 	n := ns.getRandomNode(func(n *node) bool {
 		return n.role == roleAccess
 	})
 	if n == nil {
-		return "", fmt.Errorf("No access node for network '%s'", network)
+		return "", fmt.Errorf("no access node for network '%s'", network)
 	}
 	return n.domain, nil
 }

@@ -21,7 +21,10 @@ import (
 	"net/http"
 )
 
-//
+// handlerAlive is a handler which take the value from the request body and
+// tries to decrypt it using the shared secret of the node associated with the
+// request. If successful then the un-encrypted value is then returned in the
+// response.
 func handlerAlive(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -34,10 +37,6 @@ func handlerAlive(s *Services) http.HandlerFunc {
 
 		// Get the node associated with the request.
 		n := s.store.getNode(r.Host)
-		// if err != nil {
-		// 	returnAPIError(s, w, err, http.StatusInternalServerError)
-		// 	return
-		// }
 
 		// Decode the body to form the byte array.
 		nonce, err := n.Decrypt(body)

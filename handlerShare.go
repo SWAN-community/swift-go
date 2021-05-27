@@ -22,8 +22,11 @@ import (
 	"net/http"
 )
 
+// HandlerShare returns an encrypted json document which contains details for
+// all known active nodes.
 func HandlerShare(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var nis []nodeShareItem
 		var err error
 
 		// Get the node associated with the request.
@@ -41,12 +44,15 @@ func HandlerShare(s *Services) http.HandlerFunc {
 			return
 		}
 
-		var nis []nodeShareItem
-		ns, err := s.store.getAllNodes()
+		// Get all active nodes.
+		ns, err := s.store.store.getAllActiveNodes()
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
+
+		// Turn items in array of active nodes into nodeShareItems so that they
+		// can be marshalled to JSON.
 		for _, n := range ns {
 			var secrets []secretItem
 			for _, v := range n.secrets {
@@ -71,12 +77,14 @@ func HandlerShare(s *Services) http.HandlerFunc {
 			nis = append(nis, newNode)
 		}
 
+		// Create JSON response.
 		j, err := json.Marshal(nis)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
+		// Encrypt the JSON response using the nodes shared secret.
 		b, err := a.encrypt(j)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
