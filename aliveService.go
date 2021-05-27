@@ -26,7 +26,11 @@ import (
 	"time"
 )
 
-// aliveService is a
+// aliveService type is service which polls known nodes to determine if they are
+// 'alive' and responding to requests. Only nodes that have not been accessed
+// for a period of time greater than the polling interval will be polled. On a
+// successful poll, the node's accessed time is updated and the 'alive' value is
+// set to true. Otherwise, the node's 'alive' value is set to false.
 type aliveService struct {
 	ticker          *time.Ticker
 	config          Configuration  // swift config
@@ -64,45 +68,79 @@ func (a *aliveService) stop() {
 	a.ticker.Stop()
 }
 
+// checkAlive starts a new ticker and stores a reference to it in the
+// aliveService. For each tick, all nodes known by the storageService are polled.
 func (a *aliveService) checkAlive() {
-	ticker := time.NewTicker(a.pollingInterval)
-	a.ticker = ticker
-	defer ticker.Stop()
-	for _ = range ticker.C {
+	a.ticker = time.NewTicker(a.pollingInterval)
+	defer a.ticker.Stop()
+	for _ = range a.ticker.C {
 		for _, n := range a.store.nodes {
-			if time.Now().UTC().Sub(n.accessed) >= a.pollingInterval {
-				nonce, err := nonce()
-				if err != nil {
-					if a.config.Debug {
-						log.Printf("SWIFT: could not generate nonce, alive failed "+
-							"to check node '%s'\r\n", n.domain)
-						log.Println(err.Error())
-					}
-					n.alive = false
-					continue
-				}
-				b, err := a.callAlive(n, nonce)
-				if err != nil {
-					if a.config.Debug {
-						log.Printf("SWIFT: alive check failed for node "+
-							"'%s'\r\n", n.domain)
-						log.Println(err.Error())
-					}
-					n.alive = false
-					continue
-				}
-				if bytes.Equal(nonce, b) {
-					n.alive = true
-					n.accessed = time.Now().UTC()
-					continue
-				}
-				n.alive = false
-			}
+			a.pollNode(n)
 		}
 	}
 }
 
-func (a *aliveService) callAlive(n *node, data []byte) ([]byte, error) {
+// pollNode polls the given node to determine if it is alive and responding to
+// requests. If the node has not been accessed for longer than the polling
+// interval then the node is polled with a nonce value that has been encrypted
+// with the polled node's shared secret. If there is a  response back from the
+// polled node and the response value is the same as the original nonce value
+// then the node's 'alive' value is set to true.
+func (a *aliveService) pollNode(n *node) {
+	if time.Now().UTC().Sub(n.accessed) >= a.pollingInterval {
+
+		// create a new nonce value
+		nonce, err := nonce()
+		if err != nil {
+			if a.config.Debug {
+				log.Printf("SWIFT: could not generate nonce, "+
+					"aliveService failed to check node '%s'\r\n", n.domain)
+				log.Println(err.Error())
+			}
+			n.alive = false
+			return
+		}
+
+		// encrypt the nonce using the target node's shared secret
+		b1, err := n.encrypt(nonce)
+		if err != nil {
+			if a.config.Debug {
+				log.Printf("SWIFT: could not encrypt nonce using node's "+
+					"shared secret, aliveService failed to check node "+
+					"'%s'\r\n", n.domain)
+				log.Println(err.Error())
+			}
+		}
+
+		// call the node's 'alive' endpoint with the encrypted nonce value
+		// and get the response.
+		b2, err := a.callAlive(n, b1)
+		if err != nil {
+			if a.config.Debug {
+				log.Printf("SWIFT: alive check failed for node "+
+					"'%s'\r\n", n.domain)
+				log.Println(err.Error())
+			}
+			n.alive = false
+			return
+		}
+
+		// check that the response is equal to the original nonce value. This
+		// confirms that the node is responding and that the known shared
+		// secret is valid.
+		if bytes.Equal(nonce, b2) {
+			n.alive = true
+			n.accessed = time.Now().UTC()
+			return
+		}
+		n.alive = false
+	}
+}
+
+// callAlive sends a POST request to a given nodes alive endpoint, the request
+// contains the the given data. On a successful request, the response body is
+// then returned.
+func (a *aliveService) callAlive(n *node, d []byte) ([]byte, error) {
 	client := &http.Client{
 		Timeout: a.pollingInterval,
 	}
@@ -112,12 +150,7 @@ func (a *aliveService) callAlive(n *node, data []byte) ([]byte, error) {
 		Path:   "/swift/api/v1/alive",
 	}
 
-	b1, err := n.encrypt(data)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(b1))
+	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(d))
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +169,7 @@ func (a *aliveService) callAlive(n *node, data []byte) ([]byte, error) {
 	return body, nil
 }
 
+// nonce returns a new nonce generated using crpyto/rand
 func nonce() ([]byte, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
