@@ -169,6 +169,19 @@ var registerTemplate = newHTMLTemplate("register", `
 	<form action="register" method="GET">
 	<table style="text-align: left;">
 		<tr>
+			<td>
+				<p><label for="store">Store</label></p>
+			</td>
+			<td>
+				<p><input type="text"  id="store" name="store" value="{{.Strore}}" {{if .ReadOnly}}disabled{{end}}></p>
+			</td>
+			<td>
+				{{if .DisplayErrors}}
+				<p>{{.StoreError}}</p>
+				{{end}}
+			</td>
+		</tr>
+		<tr>
 			<td colspan="3">
 				{{if not .ReadOnly}}
 				<p>Register node '{{.Domain}}' to a network.</p>

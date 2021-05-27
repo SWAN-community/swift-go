@@ -24,6 +24,7 @@ import (
 // Register contains HTML template data used to register a node with the network
 type Register struct {
 	Services      *Services
+	Store         string
 	Domain        string
 	Network       string
 	Starts        time.Time
@@ -32,6 +33,7 @@ type Register struct {
 	Error         string
 	NetworkError  string
 	ExpiresError  string
+	StoreError    string
 	RoleError     string
 	ReadOnly      bool
 	DisplayErrors bool

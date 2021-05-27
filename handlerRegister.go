@@ -31,6 +31,7 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		var err error
 
 		var d Register
+		d.Store = ""
 		d.request = r
 		d.Services = s
 		d.Domain = r.Host
@@ -130,9 +131,9 @@ func storeNode(s *Services, d *Register) {
 
 	// Store the node and it successful mark the registration process as
 	// complete.
-	err = s.store.setNodes(n)
+	err = s.store.setNodes(d.Store, n)
 	if err != nil {
-		d.Error = err.Error()
+		d.StoreError = err.Error()
 	} else {
 		d.ReadOnly = true
 	}
