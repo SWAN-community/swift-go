@@ -105,3 +105,64 @@ func (svc *storageService) getAllNodes() ([]*node, error) {
 func (svc *storageService) setNodes(store string, ns ...*node) error {
 	return svc.store.setNodes(store, ns...)
 }
+
+// GetStoreNames gets the name of all writeable stores
+func (svc *storageService) GetStoreNames() []string {
+	var storeNames []string
+	for _, s := range svc.stores {
+		if !s.getReadOnly() {
+			storeNames = append(storeNames, s.getName())
+		}
+	}
+	return storeNames
+}
+
+// SetNode takes a register object and creates a new node, returns boolean
+// for if successful or not and another boolean if this is an update operation.
+func (s *storageService) SetNode(d *Register) (bool, bool) {
+
+	// check if this is an update operation
+	isUpdate := false
+	if s.getNode(d.Domain) != nil {
+		isUpdate = true
+	}
+
+	// Create a new scrambler for this new node.
+	scrambler, err := newSecret()
+	if err != nil {
+		d.Error = err.Error()
+		return false, isUpdate
+	}
+
+	// Create the new node ready to have it's secret added and stored.
+	n, err := newNode(
+		d.Network,
+		d.Domain,
+		time.Now().UTC(),
+		d.Starts,
+		d.Expires,
+		d.Role,
+		scrambler.key)
+	if err != nil {
+		d.Error = err.Error()
+		return false, isUpdate
+	}
+
+	// Add the first secret to the node.
+	x, err := newSecret()
+	if err != nil {
+		d.Error = err.Error()
+		return false, isUpdate
+	}
+	n.addSecret(x)
+
+	// Store the node and it successful mark the registration process as
+	// complete.
+	err = s.setNodes(d.Store, n)
+	if err != nil {
+		d.StoreError = err.Error()
+	} else {
+		d.ReadOnly = true
+	}
+	return true, isUpdate
+}
