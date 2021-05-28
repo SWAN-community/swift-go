@@ -80,12 +80,16 @@ func newStorageManager(c Configuration, sts ...Store) (*storageManager, error) {
 			// get all the nodes the shaing node knows about
 			b, err := callShare(n, c.Scheme)
 			if err != nil {
-				log.Println(err.Error())
+				if c.Debug {
+					log.Println(err.Error())
+				}
 			}
 
 			nodes, err := getNodesFromByteArray(b)
 			if err != nil {
-				log.Println(err.Error())
+				if c.Debug {
+					log.Println(err.Error())
+				}
 			}
 
 			// check if shared nodes contain any storage nodes
