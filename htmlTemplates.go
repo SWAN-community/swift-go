@@ -169,24 +169,29 @@ var registerTemplate = newHTMLTemplate("register", `
 	<form action="register" method="GET">
 	<table style="text-align: left;">
 		<tr>
-			<td>
-				<p><label for="store">Store</label></p>
-			</td>
-			<td>
-				<p><input type="text"  id="store" name="store" value="{{.Strore}}" {{if .ReadOnly}}disabled{{end}}></p>
-			</td>
-			<td>
-				{{if .DisplayErrors}}
-				<p>{{.StoreError}}</p>
-				{{end}}
-			</td>
-		</tr>
-		<tr>
 			<td colspan="3">
 				{{if not .ReadOnly}}
 				<p>Register node '{{.Domain}}' to a network.</p>
 				{{else}}
 				<p>Success. Node '{{.Domain}}' registered to network '{{.Network}}'.</p>
+				<p>The new node will become active after the storage service is refreshed and the 'Starts' time has passed.<p>
+				{{end}}
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<p><label for="store">Store</label></p>
+			</td>
+			<td>
+				<p><select id="store" name="store" {{if .ReadOnly}}disabled{{end}}>
+					{{ range $store := .StoreNames }}
+						<option value="{{$store}}">{{$store}}<option>
+					{{ end }}
+				</select></p>
+			</td>
+			<td>
+				{{if .DisplayErrors}}
+				<p>{{.StoreError}}</p>
 				{{end}}
 			</td>
 		</tr>
@@ -205,6 +210,19 @@ var registerTemplate = newHTMLTemplate("register", `
 		</tr>
 		<tr>
 			<td>
+				<p><label for="starts">Starts (UTC)</label></p>
+			</td>
+			<td>
+				<p><input type="datetime-local" id="starts" name="starts" value="{{.StartsString}}" {{if .ReadOnly}}disabled{{end}}></p>
+			</td>
+			<td>
+				{{if .DisplayErrors}}
+				<p>{{.StartsError}}</p>
+				{{end}}
+			</td>
+		</tr>
+		<tr>
+			<td>
 				<p><label for="expires">Expires</label></p>
 			</td>
 			<td>
@@ -213,19 +231,6 @@ var registerTemplate = newHTMLTemplate("register", `
 			<td>
 				{{if .DisplayErrors}}
 				<p>{{.ExpiresError}}</p>
-				{{end}}
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<p><label for="starts">Starts</label></p>
-			</td>
-			<td>
-				<p><input type="date" id="starts" name="starts" value="{{.StartsString}}" {{if .ReadOnly}}disabled{{end}}></p>
-			</td>
-			<td>
-				{{if .DisplayErrors}}
-				<p>{{.StartsError}}</p>
 				{{end}}
 			</td>
 		</tr>

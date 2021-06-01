@@ -31,6 +31,7 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		var err error
 
 		var d Register
+		d.StoreNames = s.store.GetStoreNames()
 		d.Store = ""
 		d.request = r
 		d.Services = s
@@ -84,6 +85,16 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 			}
 		}
 
+		// Get the node starts information.
+		if r.FormValue("starts") != "" {
+			d.Starts, err = time.Parse("2006-01-02T15:04", r.FormValue("starts"))
+			if err != nil {
+				d.StartsError = err.Error()
+			} else if d.Starts.Before(time.Now().UTC()) {
+				d.StartsError = "Expiry date must be in the future"
+			}
+		}
+
 		// If the form data is valid then store the new node.
 		if d.ExpiresError == "" &&
 			d.RoleError == "" &&
@@ -92,8 +103,6 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		}
 
 		// Return the HTML page.
-		// TODO: Inform the user that the new node will not become active until
-		// the application restarts
 		sendHTMLTemplate(s, w, registerTemplate, &d)
 	}
 }
@@ -112,7 +121,7 @@ func storeNode(s *Services, d *Register) {
 		d.Network,
 		d.Domain,
 		time.Now().UTC(),
-		d.Starts,
+		d.Starts.UTC(),
 		d.Expires,
 		d.Role,
 		scrambler.key)

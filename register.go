@@ -24,6 +24,7 @@ import (
 // Register contains HTML template data used to register a node with the network
 type Register struct {
 	Services      *Services
+	StoreNames    []string
 	Store         string
 	Domain        string
 	Network       string
@@ -33,6 +34,7 @@ type Register struct {
 	Error         string
 	NetworkError  string
 	ExpiresError  string
+	StartsError   string
 	StoreError    string
 	RoleError     string
 	ReadOnly      bool
@@ -47,7 +49,7 @@ func (r *Register) ExpiresString() string {
 
 // StartsString returns the start date as a string
 func (r *Register) StartsString() string {
-	return r.Starts.Format("2006-01-02")
+	return r.Starts.Format("2006-01-02T15:04")
 }
 
 // Language returns the language code associated with the web page.
