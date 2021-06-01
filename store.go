@@ -76,10 +76,7 @@ func NewStore(swiftConfig Configuration) []Store {
 			panic(errors.New("Either the AZURE_STORAGE_ACCOUNT or " +
 				"AZURE_STORAGE_ACCESS_KEY environment variable is not set"))
 		}
-		swiftStore, err := NewAzure(
-			"default",
-			azureAccountName,
-			azureAccountKey)
+		swiftStore, err := NewAzure(azureAccountName, azureAccountKey)
 		if err != nil {
 			panic(err)
 		}
@@ -87,16 +84,24 @@ func NewStore(swiftConfig Configuration) []Store {
 	}
 	if len(gcpProject) > 0 {
 		log.Printf("SWIFT: Using Google Firebase")
-		swiftStore, err := NewFirebase("default", gcpProject)
+		swiftStore, err := NewFirebase(gcpProject)
 		if err != nil {
 			panic(err)
 		}
 		swiftStores = append(swiftStores, swiftStore)
 	}
-	if len(swiftSecrets) > 0 &&
+	if len(swiftSecrets) > 0 ||
 		len(swiftNodes) > 0 {
 		log.Printf("SWIFT: Using local storage")
-		swiftStore, err := NewLocalStore("default", swiftSecrets, swiftNodes)
+		if len(swiftSecrets) == 0 {
+			panic(errors.New("The SWIFT_SECRETS_FILE environment variable " +
+				"is not set"))
+		}
+		if len(swiftNodes) == 0 {
+			panic(errors.New("The SWIFT_NODES_FILE environment variable " +
+				"is not set"))
+		}
+		swiftStore, err := NewLocalStore(swiftSecrets, swiftNodes)
 		if err != nil {
 			panic(err)
 		}
@@ -104,22 +109,23 @@ func NewStore(swiftConfig Configuration) []Store {
 	}
 	if len(awsLoadConfig) > 0 {
 		log.Printf("SWIFT: Using AWS DynamoDB")
-		swiftStore, err := NewAWS("default")
+		swiftStore, err := NewAWS()
 		if err != nil {
 			panic(err)
 		}
 		swiftStores = append(swiftStores, swiftStore)
 	}
 
-	// TODO: verbose instruction of what to do if no stores available.
 	if len(swiftStores) == 0 {
 		panic(fmt.Errorf("SWIFT: no store has been configured. " +
-			"Provide details for store by specifying one of more sets of " +
+			"Provide details for store by specifying one or more sets of " +
 			"environment variables\r\n: " +
 			"(1) Azure Storage account details 'AZURE_STORAGE_ACCOUNT' & 'AZURE_STORAGE_ACCESS_KEY'\r\n" +
-			"(2) GCP \r\n" +
-			"(3) Local \r\n" +
-			"(4) AWS "))
+			"(2) GCP project in 'GCP_PROJECT' \r\n" +
+			"(3) Local storage file paths in 'SWIFT_SECRETS_FILE' & 'SWIFT_NODES_FILE'\r\n" +
+			"(4) AWS Dynamo DB by setting 'AWS_SDK_LOAD_CONFIG' to true\r\n" +
+			"Refer to https://github.com/SWAN-community/swift/blob/main/storage.md " +
+			"for specifics on setting up each storage solution"))
 	}
 
 	return swiftStores

@@ -57,10 +57,10 @@ type SecretItem struct {
 }
 
 // NewAWS creates a new instance of the AWS structure
-func NewAWS(name string) (*AWS, error) {
+func NewAWS() (*AWS, error) {
 	var a AWS
 	var s *session.Session
-	a.name = name
+	a.name = "AWS DynamoDB Store"
 	// Configure session with credentials from .aws/credentials or env and
 	// region from .aws/config or env
 	s = session.Must(session.NewSession())

@@ -43,10 +43,10 @@ type secretItem struct {
 
 // NewLocalStore creates a new instance of Local and configures the paths for
 // the persistent JSON files.
-func NewLocalStore(name string, secretsFile string, nodesFile string) (*Local, error) {
+func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
 	var l Local
 
-	l.name = name
+	l.name = "Local Storage"
 	l.nodesFile = nodesFile
 	l.secretsFile = secretsFile
 

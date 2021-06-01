@@ -38,9 +38,9 @@ type Azure struct {
 
 // NewAzure creates a new client for accessing table storage with the
 // credentials supplied.
-func NewAzure(name string, account string, accessKey string) (*Azure, error) {
+func NewAzure(account string, accessKey string) (*Azure, error) {
 	var a Azure
-	a.name = name
+	a.name = "Azure Table Storeage"
 	c, err := storage.NewBasicClient(account, accessKey)
 	if err != nil {
 		return nil, err

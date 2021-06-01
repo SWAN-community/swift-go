@@ -36,9 +36,9 @@ type Firebase struct {
 }
 
 // NewFirebase creates a new instance of the Firebase structure
-func NewFirebase(name string, project string) (*Firebase, error) {
+func NewFirebase(project string) (*Firebase, error) {
 	var f Firebase
-	f.name = name
+	f.name = "Google Firebase"
 	ctx := context.Background()
 	conf := &firebase.Config{ProjectID: project}
 	app, err := firebase.NewApp(ctx, conf)
