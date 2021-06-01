@@ -124,7 +124,7 @@ func NewStore(swiftConfig Configuration) []Store {
 			"(2) GCP project in 'GCP_PROJECT' \r\n" +
 			"(3) Local storage file paths in 'SWIFT_SECRETS_FILE' & 'SWIFT_NODES_FILE'\r\n" +
 			"(4) AWS Dynamo DB by setting 'AWS_SDK_LOAD_CONFIG' to true\r\n" +
-			"Refer to https://github.com/SWAN-community/swift/blob/main/storage.md " +
+			"Refer to https://github.com/SWAN-community/swift-go/blob/main/README.md " +
 			"for specifics on setting up each storage solution"))
 	}
 
