@@ -106,7 +106,7 @@ func (svc *storageService) setNodes(store string, ns ...*node) error {
 	return svc.store.setNodes(store, ns...)
 }
 
-// GetStoreNames gets the name of all writeable stores
+// GetStoreNames returns an array of names of all the writeable stores
 func (svc *storageService) GetStoreNames() []string {
 	var storeNames []string
 	for _, s := range svc.stores {

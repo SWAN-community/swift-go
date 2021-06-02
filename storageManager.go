@@ -35,7 +35,7 @@ type storageManager struct {
 	// stores is a readonly array of Stores populated when the storage manager
 	// is created
 	stores []Store
-	// nodes is a readonly map of nodes (by domain) to the associated nodes
+	// nodes is a readonly map of nodes (by domain) to the associated node
 	nodes map[string]*node
 	// alive is a background service which polls nodes periodically to ensure
 	// that they are alive
@@ -128,9 +128,6 @@ func newStorageManager(c Configuration, sts ...Store) (*storageManager, error) {
 // getNode gets the node associated with the domain.
 func (sm *storageManager) getNode(domain string) *node { return sm.nodes[domain] }
 
-// getStores returns an array of all the stores.
-func (sm *storageManager) getStores() []Store { return sm.stores }
-
 // GetAccessNode returns an access node for the network, or null if there is no
 // access node available.
 func (sm *storageManager) GetAccessNode(network string) (string, error) {
@@ -139,18 +136,18 @@ func (sm *storageManager) GetAccessNode(network string) (string, error) {
 		return "", err
 	}
 	if ns == nil {
-		return "", fmt.Errorf("No access nodes for network '%s'", network)
+		return "", fmt.Errorf("no access nodes for network '%s'", network)
 	}
 	n := ns.getRandomNode(func(n *node) bool {
 		return n.role == roleAccess
 	})
 	if n == nil {
-		return "", fmt.Errorf("No access node for network '%s'", network)
+		return "", fmt.Errorf("no access node for network '%s'", network)
 	}
 	return n.domain, nil
 }
 
-// getNodes returns the nodes object
+// getNodes returns the nodes object associated with a network.
 func (sm *storageManager) getNodes(network string) (*nodes, error) {
 	for _, s := range sm.stores {
 		nets, err := s.getNodes(network)
@@ -164,7 +161,8 @@ func (sm *storageManager) getNodes(network string) (*nodes, error) {
 	return nil, nil
 }
 
-// getAllNodes returns all the nodes for all networks.
+// getAllActiveNodes returns all the nodes for all networks which have the alive
+// flag set to true and have a start date that is before the current time.
 func (sm *storageManager) getAllActiveNodes() ([]*node, error) {
 	var n []*node
 	for _, s := range sm.stores {
@@ -172,7 +170,7 @@ func (sm *storageManager) getAllActiveNodes() ([]*node, error) {
 			st, ok := s.(*[]*node)
 			if ok &&
 				n.alive &&
-				time.Now().UTC().After(n.starts) {
+				n.starts.Before(time.Now().UTC()) {
 				*st = append(*st, n)
 				return nil
 			}
@@ -186,7 +184,7 @@ func (sm *storageManager) getAllActiveNodes() ([]*node, error) {
 	return n, nil
 }
 
-// getAllNodes returns all the nodes for all networks.
+// getAllNodes returns all the nodes from all store instances combined.
 func (sm *storageManager) getAllNodes() ([]*node, error) {
 	var n []*node
 	for _, s := range sm.stores {
@@ -206,9 +204,9 @@ func (sm *storageManager) getAllNodes() ([]*node, error) {
 	return n, nil
 }
 
-// setNodes adds or updates a node in the specified store. setNodes will also
-// succeed if no store name is provided and only one writeable store exists
-// in the storageManager.
+// setNodes adds or if supported, updates a node in the specified store.
+// setNodes will also succeed if no store name is provided and only one
+// writeable store exists in the storageManager.
 func (sm *storageManager) setNodes(store string, ns ...*node) error {
 	var stores []Store
 

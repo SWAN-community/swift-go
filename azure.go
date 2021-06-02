@@ -131,6 +131,7 @@ func (a *Azure) setNode(n *node) error {
 	}
 	e := a.nodesTable.GetEntityReference(n.network, n.domain)
 	e.Properties = make(map[string]interface{})
+	e.Properties[startsFieldName] = n.starts
 	e.Properties[expiresFieldName] = n.expires
 	e.Properties[roleFieldName] = n.role
 	e.Properties[scramblerKeyFieldName] = n.scrambler.key

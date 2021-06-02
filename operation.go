@@ -118,7 +118,8 @@ func (o *operation) HomeNode() *node {
 	return o.homeNodePtr
 }
 
-// TODO Comment
+// PrevNode returns the previous node associated with the operatation. Used to
+// update the last accessed time of a node for passive alive verification.
 func (o *operation) PrevNode() *node {
 	if o.prevNodePtr == nil {
 		if o.prevNode != "" {

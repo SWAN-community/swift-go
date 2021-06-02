@@ -195,6 +195,7 @@ func (n *node) DecryptAndDecode(d []byte) (*Results, error) {
 	return r, nil
 }
 
+// TODO: use this to replace duplicate structs to mashal nodes to and from json
 func (n *node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"network":   n.network,
@@ -208,6 +209,7 @@ func (n *node) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// TODO: use this to replace duplicate structs to mashal nodes to and from json
 func (n *node) UnmarshalJSON(b []byte) error {
 	var d map[string]interface{}
 	err := json.Unmarshal(b, &d)
