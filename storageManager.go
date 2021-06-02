@@ -254,6 +254,13 @@ func addNode(n *node, s interface{}) error {
 	if !ok {
 		return fmt.Errorf("s interface{} is not a type of 'map[string]*node'")
 	}
+
+	// If the node already exists and the existing node is newer then ignore
+	// this node.
+	if st[n.domain] != nil && st[n.domain].created.After(n.created) {
+		return nil
+	}
+
 	st[n.domain] = n
 	return nil
 }
