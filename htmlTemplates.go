@@ -185,7 +185,7 @@ var registerTemplate = newHTMLTemplate("register", `
 			<td>
 				<p><select id="store" name="store" {{if .ReadOnly}}disabled{{end}}>
 					{{ range $store := .StoreNames }}
-						<option value="{{$store}}">{{$store}}<option>
+						<option value="{{$store}}">{{$store}}</option>
 					{{ end }}
 				</select></p>
 			</td>

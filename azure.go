@@ -40,7 +40,7 @@ type Azure struct {
 // credentials supplied.
 func NewAzure(account string, accessKey string) (*Azure, error) {
 	var a Azure
-	a.name = "Azure Table Storeage"
+	a.name = "Azure Table Storage"
 	c, err := storage.NewBasicClient(account, accessKey)
 	if err != nil {
 		return nil, err

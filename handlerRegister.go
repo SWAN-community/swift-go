@@ -55,6 +55,9 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		}
 		d.DisplayErrors = len(r.Form) > 0
 
+		// Get the store information
+		d.Store = r.FormValue("store")
+
 		// Get the network information.
 		d.Network = r.FormValue("network")
 		if len(d.Network) <= 3 {
