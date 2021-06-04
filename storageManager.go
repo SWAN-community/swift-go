@@ -164,17 +164,17 @@ func (sm *storageManager) getNodes(network string) (*nodes, error) {
 // getAllActiveNodes returns all the nodes for all networks which have the alive
 // flag set to true and have a start date that is before the current time.
 func (sm *storageManager) getAllActiveNodes() ([]*node, error) {
-	var n []*node
+	n := make([]*node, 0)
 	for _, s := range sm.stores {
 		err := s.iterateNodes(func(n *node, s interface{}) error {
 			st, ok := s.(*[]*node)
-			if ok &&
-				n.alive &&
-				n.starts.Before(time.Now().UTC()) {
-				*st = append(*st, n)
-				return nil
+			if !ok {
+				return fmt.Errorf("%v not a []*node", s)
 			}
-			return fmt.Errorf("%v not a []*node", s)
+			if n.alive && n.starts.Before(time.Now().UTC()) {
+				*st = append(*st, n)
+			}
+			return nil
 		}, &n)
 		if err != nil {
 			return nil, err
