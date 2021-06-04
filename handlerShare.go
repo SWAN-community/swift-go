@@ -58,13 +58,12 @@ func HandlerShare(s *Services) http.HandlerFunc {
 		}
 
 		// Encrypt the JSON response using the nodes shared secret.
-		// b, err := a.encrypt(j)
-		// if err != nil {
-		// 	returnAPIError(s, w, err, http.StatusBadRequest)
-		// 	return
-		// }
+		b, err := a.encrypt(j)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusBadRequest)
+			return
+		}
 
-		w.Write(j)
-		//		w.Write(b)
+		w.Write(b)
 	}
 }
