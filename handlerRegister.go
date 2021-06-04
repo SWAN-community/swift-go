@@ -28,21 +28,21 @@ import (
 // the domain has been registered in the storage service.
 func HandlerRegister(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
 
 		var d Register
+		d.StoreNames = s.store.GetStoreNames()
+		d.Store = ""
 		d.request = r
 		d.Services = s
 		d.Domain = r.Host
+		d.Starts = time.Now().UTC().AddDate(0, 0, 1)
 		d.Network = ""
 		d.Expires = time.Now().UTC().AddDate(0, 3, 0)
 		d.Role = roleStorage
 
 		// Check that the domain has not already been registered.
-		n, err := s.store.getNode(r.Host)
-		if err != nil {
-			returnServerError(s, w, err)
-			return
-		}
+		n := s.store.getNode(r.Host)
 		if n != nil {
 			return
 		}
@@ -54,6 +54,9 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 			return
 		}
 		d.DisplayErrors = len(r.Form) > 0
+
+		// Get the store information
+		d.Store = r.FormValue("store")
 
 		// Get the network information.
 		d.Network = r.FormValue("network")
@@ -68,7 +71,9 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 			d.Role, err = strconv.Atoi(r.FormValue("role"))
 			if err != nil {
 				d.RoleError = err.Error()
-			} else if d.Role != roleAccess && d.Role != roleStorage {
+			} else if d.Role != roleAccess &&
+				d.Role != roleStorage &&
+				d.Role != roleShare {
 				d.RoleError = fmt.Sprintf("Role '%d' invalid", d.Role)
 			}
 		}
@@ -80,6 +85,14 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 				d.ExpiresError = err.Error()
 			} else if d.Expires.Before(time.Now().UTC()) {
 				d.ExpiresError = "Expiry date must be in the future"
+			}
+		}
+
+		// Get the node starts information.
+		if r.FormValue("starts") != "" {
+			d.Starts, err = time.Parse("2006-01-02T15:04", r.FormValue("starts"))
+			if err != nil {
+				d.StartsError = err.Error()
 			}
 		}
 
@@ -109,6 +122,7 @@ func storeNode(s *Services, d *Register) {
 		d.Network,
 		d.Domain,
 		time.Now().UTC(),
+		d.Starts.UTC(),
 		d.Expires,
 		d.Role,
 		scrambler.key)
@@ -127,9 +141,9 @@ func storeNode(s *Services, d *Register) {
 
 	// Store the node and it successful mark the registration process as
 	// complete.
-	err = s.store.setNode(n)
+	err = s.store.setNodes(d.Store, n)
 	if err != nil {
-		d.Error = err.Error()
+		d.StoreError = err.Error()
 	} else {
 		d.ReadOnly = true
 	}

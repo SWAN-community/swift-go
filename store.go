@@ -18,6 +18,7 @@ package swift
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 )
@@ -28,6 +29,7 @@ const (
 	domainFieldName       = "Domain"       // The domain of the node
 	networkFieldName      = "Network"      // The network of the node
 	roleFieldName         = "role"         // The role of the node
+	startsFieldName       = "starts"       // When the node begins operation
 	expiresFieldName      = "expires"      // When the node expires
 	scramblerKeyFieldName = "ScramblerKey" // Used to scramble table and key names
 )
@@ -35,65 +37,86 @@ const (
 // Store interface for persistent data shared across instances operated.
 type Store interface {
 
-	// GetNode takes a domain name and returns the associated node. If a node
-	// does not exist then nil is returned.
-	getNode(domain string) (*Node, error)
+	// getName returns the human readable name for the store
+	getName() string
 
-	// GetNodes returns all the nodes associated with a network.
+	// getNode return details of node if store knows about node
+	getNode(domain string) (*node, error)
+
+	// getNodes returns nodes
 	getNodes(network string) (*nodes, error)
 
-	// SetNode inserts or updates the node.
-	setNode(node *Node) error
+	// getReadonly returns true if the store does not support inserts and updates.
+	getReadOnly() bool
+	// iterateNodes call the callback for every node
+	// n is the node
+	// s is the state for the function
+	iterateNodes(callback func(n *node, s interface{}) error, s interface{}) error
+
+	// setNode inserts or updates the node if the store supports inserts and
+	// updates
+	setNode(n *node) error
 }
 
 // NewStore returns a work implementation of the Store interface for the
 // configuration supplied.
-func NewStore(swiftConfig Configuration) Store {
-	var swiftStore Store
-	var err error
+func NewStore(swiftConfig Configuration) []Store {
+	var swiftStores []Store
 
-	azureAccountName, azureAccountKey, gcpProject, swiftSecrets, swiftNodes :=
+	azureAccountName, azureAccountKey, gcpProject, swiftNodes, awsEnabled :=
 		os.Getenv("AZURE_STORAGE_ACCOUNT"),
 		os.Getenv("AZURE_STORAGE_ACCESS_KEY"),
 		os.Getenv("GCP_PROJECT"),
-		os.Getenv("SWIFT_SECRETS_FILE"),
-		os.Getenv("SWIFT_NODES_FILE")
+		os.Getenv("SWIFT_NODES_FILE"),
+		os.Getenv("AWS_ENABLED")
 	if len(azureAccountName) > 0 || len(azureAccountKey) > 0 {
 		log.Printf("SWIFT: Using Azure Table Storage")
 		if len(azureAccountName) == 0 || len(azureAccountKey) == 0 {
 			panic(errors.New("Either the AZURE_STORAGE_ACCOUNT or " +
-				"AZURE_STORAGE_ACCESS_KEY environment variable is not set."))
+				"AZURE_STORAGE_ACCESS_KEY environment variable is not set"))
 		}
-		swiftStore, err = NewAzure(
-			azureAccountName,
-			azureAccountKey)
+		swiftStore, err := NewAzure(azureAccountName, azureAccountKey)
 		if err != nil {
 			panic(err)
 		}
-	} else if len(gcpProject) > 0 {
+		swiftStores = append(swiftStores, swiftStore)
+	}
+	if len(gcpProject) > 0 {
 		log.Printf("SWIFT: Using Google Firebase")
-		swiftStore, err = NewFirebase(gcpProject)
+		swiftStore, err := NewFirebase(gcpProject)
 		if err != nil {
 			panic(err)
 		}
-	} else if len(swiftSecrets) > 0 &&
-		len(swiftNodes) > 0 {
+		swiftStores = append(swiftStores, swiftStore)
+	}
+	if len(swiftNodes) > 0 {
 		log.Printf("SWIFT: Using local storage")
-		swiftStore, err = NewLocalStore(swiftSecrets, swiftNodes)
+		swiftStore, err := NewLocalStore(swiftNodes)
 		if err != nil {
 			panic(err)
 		}
-	} else {
+		swiftStores = append(swiftStores, swiftStore)
+	}
+	if len(awsEnabled) > 0 {
 		log.Printf("SWIFT: Using AWS DynamoDB")
-		swiftStore, err = NewAWS()
+		swiftStore, err := NewAWS()
 		if err != nil {
 			panic(err)
 		}
+		swiftStores = append(swiftStores, swiftStore)
 	}
 
-	if swiftStore == nil {
-		panic(errors.New("SWIFT: store not configured"))
+	if len(swiftStores) == 0 {
+		panic(fmt.Errorf("SWIFT: no store has been configured. " +
+			"Provide details for store by specifying one or more sets of " +
+			"environment variables\r\n: " +
+			"(1) Azure Storage account details 'AZURE_STORAGE_ACCOUNT' & 'AZURE_STORAGE_ACCESS_KEY'\r\n" +
+			"(2) GCP project in 'GCP_PROJECT' \r\n" +
+			"(3) Local storage file paths in 'SWIFT_SECRETS_FILE' & 'SWIFT_NODES_FILE'\r\n" +
+			"(4) AWS Dynamo DB by setting 'AWS_SDK_LOAD_CONFIG' to true\r\n" +
+			"Refer to https://github.com/SWAN-community/swift-go/blob/main/README.md " +
+			"for specifics on setting up each storage solution"))
 	}
 
-	return swiftStore
+	return swiftStores
 }

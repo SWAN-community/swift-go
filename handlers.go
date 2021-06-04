@@ -31,11 +31,17 @@ func AddHandlers(
 	services *Services,
 	malformedHandler func(w http.ResponseWriter, r *http.Request)) {
 	http.HandleFunc("/swift/register", HandlerRegister(services))
+	http.HandleFunc("/swift/api/v1/alive", handlerAlive(services))
 	http.HandleFunc("/swift/api/v1/create", HandlerCreate(services))
 	http.HandleFunc("/swift/api/v1/encrypt", HandlerEncrypt(services))
 	http.HandleFunc("/swift/api/v1/decrypt", HandlerDecrypt(services))
 	http.HandleFunc("/swift/api/v1/decode-as-json", HandlerDecodeAsJSON(services))
+	http.HandleFunc("/swift/api/v1/share", HandlerShare(services))
 	http.HandleFunc("/", HandlerStore(services, malformedHandler))
+
+	if services.config.Debug {
+		http.HandleFunc("/swift/nodes", HandlerNodes(services))
+	}
 }
 
 func newResponseError(url string, resp *http.Response) error {

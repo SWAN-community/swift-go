@@ -24,43 +24,80 @@ import (
 // common is a partial implementation of sws.Store for use with other more
 // complex implementations, and the test methods.
 type common struct {
-	nodes    map[string]*Node  // Map of domain names to nodes
+	nodes    map[string]*node  // Map of domain names to nodes
 	networks map[string]*nodes // Map of network names to nodes
 	mutex    *sync.Mutex       // mutual-exclusion lock used for refresh
 }
 
-func (c *common) init() {
-	c.nodes = make(map[string]*Node)
+func (c *common) init(ns []*node) {
+	c.nodes = make(map[string]*node)
 	c.networks = make(map[string]*nodes)
 	c.mutex = &sync.Mutex{}
+
+	for _, n := range ns {
+		c.nodes[n.domain] = n
+		net := c.networks[n.network]
+		if net == nil {
+			net = &nodes{}
+			net.dict = make(map[string]*node)
+			c.networks[n.network] = net
+		}
+		net.all = append(net.all, n)
+		net.dict[n.domain] = n
+	}
+
+	for _, net := range c.networks {
+		net.order()
+	}
 }
 
 // GetAccessNode returns an access node for the network, or null if there is no
 // access node available.
 func (c *common) GetAccessNode(network string) (string, error) {
-	nodes, err := c.getNodes(network)
+	ns, err := c.getNodes(network)
 	if err != nil {
 		return "", err
 	}
-	if nodes == nil {
-		return "", fmt.Errorf("No access nodes for network '%s'", network)
+	if ns == nil {
+		return "", fmt.Errorf("no access nodes for network '%s'", network)
 	}
-	node := nodes.getRandomNode(func(n *Node) bool {
+	n := ns.getRandomNode(func(n *node) bool {
 		return n.role == roleAccess
 	})
-	if node == nil {
-		return "", fmt.Errorf("No access node for network '%s'", network)
+	if n == nil {
+		return "", fmt.Errorf("no access node for network '%s'", network)
 	}
-	return node.domain, nil
+	return n.domain, nil
 }
 
 // getNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (c *common) getNode(domain string) (*Node, error) {
+func (c *common) getNode(domain string) (*node, error) {
 	return c.nodes[domain], nil
 }
 
 // getNodes returns all the nodes associated with a network.
 func (c *common) getNodes(network string) (*nodes, error) {
 	return c.networks[network], nil
+}
+
+func (c *common) getAllNodes() ([]*node, error) {
+	var ns []*node
+
+	for _, n := range c.nodes {
+		ns = append(ns, n)
+	}
+
+	return ns, nil
+}
+
+// getSharingNodes returns all the nodes with the role share for all networks.
+func (c *common) getSharingNodes() []*node {
+	var n []*node
+	for _, v := range c.nodes {
+		if v.role == roleShare {
+			n = append(n, v)
+		}
+	}
+	return n
 }

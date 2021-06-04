@@ -29,6 +29,7 @@ const (
 
 // Azure is a implementation of sws.Store for Microsoft's Azure table storage.
 type Azure struct {
+	name         string
 	timestamp    time.Time      // The last time the maps were refreshed
 	nodesTable   *storage.Table // Reference to the node table
 	secretsTable *storage.Table // Reference to the table of node secrets
@@ -39,6 +40,7 @@ type Azure struct {
 // credentials supplied.
 func NewAzure(account string, accessKey string) (*Azure, error) {
 	var a Azure
+	a.name = "Azure Table Storage"
 	c, err := storage.NewBasicClient(account, accessKey)
 	if err != nil {
 		return nil, err
@@ -62,7 +64,15 @@ func NewAzure(account string, accessKey string) (*Azure, error) {
 	return &a, nil
 }
 
-func (a *Azure) getNode(domain string) (*Node, error) {
+func (a *Azure) getName() string {
+	return a.name
+}
+
+func (a *Azure) getReadOnly() bool {
+	return false
+}
+
+func (a *Azure) getNode(domain string) (*node, error) {
 	n, err := a.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -92,16 +102,39 @@ func (a *Azure) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
-func (a *Azure) setNode(node *Node) error {
-	err := a.setNodeSecrets(node)
+// getAllNodes refreshes internal data and returns all nodes.
+func (a *Azure) getAllNodes() ([]*node, error) {
+	err := a.refresh()
+	if err != nil {
+		return nil, err
+	}
+	return a.common.getAllNodes()
+}
+
+// iterateNodes calls the callback function for each node
+func (a *Azure) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range a.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *Azure) setNode(n *node) error {
+	err := a.setNodeSecrets(n)
 	if err != nil {
 		return err
 	}
-	e := a.nodesTable.GetEntityReference(node.network, node.domain)
+	e := a.nodesTable.GetEntityReference(n.network, n.domain)
 	e.Properties = make(map[string]interface{})
-	e.Properties[expiresFieldName] = node.expires
-	e.Properties[roleFieldName] = node.role
-	e.Properties[scramblerKeyFieldName] = node.scrambler.key
+	e.Properties[startsFieldName] = n.starts
+	e.Properties[expiresFieldName] = n.expires
+	e.Properties[roleFieldName] = n.role
+	e.Properties[scramblerKeyFieldName] = n.scrambler.key
 	return e.Insert(storage.FullMetadata, nil)
 }
 
@@ -138,7 +171,7 @@ func (a *Azure) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*Node)
+			net.dict = make(map[string]*node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -160,7 +193,7 @@ func (a *Azure) refresh() error {
 	return nil
 }
 
-func (a *Azure) addSecrets(ns map[string]*Node) error {
+func (a *Azure) addSecrets(ns map[string]*node) error {
 
 	// Fetch all the records from the secrets table in Azure.
 	e, err := a.secretsTable.QueryEntities(
@@ -190,9 +223,9 @@ func (a *Azure) addSecrets(ns map[string]*Node) error {
 	return nil
 }
 
-func (a *Azure) fetchNodes() (map[string]*Node, error) {
+func (a *Azure) fetchNodes() (map[string]*node, error) {
 	var err error
-	ns := make(map[string]*Node)
+	ns := make(map[string]*node)
 
 	// Fetch all the records from the nodes table in Azure.
 	e, err := a.nodesTable.QueryEntities(
@@ -210,6 +243,7 @@ func (a *Azure) fetchNodes() (map[string]*Node, error) {
 			i.PartitionKey,
 			i.RowKey,
 			i.TimeStamp,
+			i.Properties[startsFieldName].(time.Time),
 			i.Properties[expiresFieldName].(time.Time),
 			int(i.Properties[roleFieldName].(float64)),
 			i.Properties[scramblerKeyFieldName].(string))
@@ -221,9 +255,9 @@ func (a *Azure) fetchNodes() (map[string]*Node, error) {
 	return ns, err
 }
 
-func (a *Azure) setNodeSecrets(node *Node) error {
-	for _, s := range node.secrets {
-		e := a.secretsTable.GetEntityReference(node.domain, s.key)
+func (a *Azure) setNodeSecrets(n *node) error {
+	for _, s := range n.secrets {
+		e := a.secretsTable.GetEntityReference(n.domain, s.key)
 		e.TimeStamp = s.timeStamp
 		err := e.Insert(storage.FullMetadata, nil)
 		if err != nil {

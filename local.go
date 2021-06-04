@@ -28,35 +28,19 @@ import (
 // Local store implementation for SWIFT - data is stored in maps in memory and
 // persisted on disk in JSON files.
 type Local struct {
-	timestamp   time.Time // The last time the maps were refreshed
-	nodesFile   string    // Reference to the node table
-	secretsFile string    // Reference to the table of node secrets
+	name      string    // The name of the store.
+	timestamp time.Time // The last time the maps were refreshed
+	nodesFile string    // Reference to the node table
 	common
 }
 
-// nodeItem is the JSON representation of a SWIFT Node
-type nodeItem struct {
-	Network     string
-	Domain      string
-	Created     time.Time
-	Expires     time.Time
-	Role        int
-	ScrambleKey string
-}
-
-// secretItem is the JSON representation of a SWIFT Secret
-type secretItem struct {
-	Timestamp time.Time
-	Key       string
-}
-
-// NewLocalStore creates a new instance of Local and configures the paths for
-// the persistent JSON files.
-func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
+// NewLocalStore creates a new instance of Local and configures the path for
+// the persistent JSON file.
+func NewLocalStore(nodesFile string) (*Local, error) {
 	var l Local
 
+	l.name = "Local Storage"
 	l.nodesFile = nodesFile
-	l.secretsFile = secretsFile
 
 	l.mutex = &sync.Mutex{}
 	err := l.refresh()
@@ -66,9 +50,17 @@ func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
 	return &l, nil
 }
 
+func (l *Local) getName() string {
+	return l.name
+}
+
+func (l *Local) getReadOnly() bool {
+	return false
+}
+
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (l *Local) getNode(domain string) (*Node, error) {
+func (l *Local) getNode(domain string) (*node, error) {
 	n, err := l.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -99,13 +91,35 @@ func (l *Local) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
-// SetNode inserts or updates the node.
-func (l *Local) setNode(node *Node) error {
-	err := l.setNodeSecrets(node)
+// getAllNodes refreshes internal data and returns all nodes.
+func (l *Local) getAllNodes() ([]*node, error) {
+	err := l.refresh()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	nis := make(map[string]*nodeItem)
+	return l.common.getAllNodes()
+}
+
+// iterateNodes calls the callback function for each node
+func (l *Local) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range l.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SetNode inserts or updates the node.
+func (l *Local) setNode(n *node) error {
+	// err := l.setNodeSecrets(n)
+	// if err != nil {
+	// 	return err
+	// }
+	nis := make(map[string]*node)
 
 	// Fetch all the records from the nodes file.
 	data, err := ioutil.ReadFile(l.nodesFile)
@@ -118,14 +132,7 @@ func (l *Local) setNode(node *Node) error {
 		return err
 	}
 
-	nis[node.domain] = &nodeItem{
-		Network:     node.network,
-		Domain:      node.domain,
-		Created:     node.created,
-		Expires:     node.expires,
-		Role:        node.role,
-		ScrambleKey: node.scrambler.key,
-	}
+	nis[n.domain] = n
 
 	data, err = json.MarshalIndent(&nis, "", "\t")
 	if err != nil {
@@ -148,17 +155,13 @@ func (l *Local) refresh() error {
 	if err != nil {
 		return err
 	}
-	err = l.addSecrets(ns)
-	if err != nil {
-		return err
-	}
 
 	// Create a map of networks from the nodes found.
 	for _, v := range ns {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*Node)
+			net.dict = make(map[string]*node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -180,48 +183,9 @@ func (l *Local) refresh() error {
 	return nil
 }
 
-func (l *Local) addSecrets(ns map[string]*Node) error {
-	sc := make(map[string][]*secretItem)
-
-	// Fetch all records from the secrets file
-	data, err := readLocalStore(l.secretsFile)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(data, &sc)
-	if err != nil && len(data) > 0 {
-		return err
-	}
-
-	// Iterate over the secrets adding them to nodes.
-	for k, s := range sc {
-		if err != nil {
-			return err
-		}
-		if ns[k] != nil {
-			for _, i := range s {
-				s, err := newSecretFromKey(i.Key, i.Timestamp)
-				if err != nil {
-					return err
-				}
-				ns[k].addSecret(s)
-			}
-		}
-	}
-
-	// Sort the secrets so the most recent is at the start of the array.
-	for _, n := range ns {
-		n.sortSecrets()
-	}
-
-	return nil
-}
-
-func (l *Local) fetchNodes() (map[string]*Node, error) {
+func (l *Local) fetchNodes() (map[string]*node, error) {
 	var err error
-	ns := make(map[string]*Node)
-	nis := make(map[string]*nodeItem)
+	ns := make(map[string]*node)
 
 	// Fetch all the records from the nodes file.
 	data, err := readLocalStore(l.nodesFile)
@@ -229,63 +193,14 @@ func (l *Local) fetchNodes() (map[string]*Node, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(data, &nis)
+	err = json.Unmarshal(data, &ns)
 	if err != nil && len(data) > 0 {
 		return nil, err
 	} else if len(data) == 0 {
 		return ns, nil
 	}
 
-	// Iterate over the records creating nodes and adding them to the networks
-	// map.
-	for k, n := range nis {
-		ns[k], err = newNode(
-			n.Network,
-			n.Domain,
-			n.Created,
-			n.Expires,
-			n.Role,
-			n.ScrambleKey)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return ns, err
-}
-
-func (l *Local) setNodeSecrets(node *Node) error {
-	sic := make(map[string][]*secretItem)
-
-	// Fetch all records from the secrets file
-	data, err := readLocalStore(l.secretsFile)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(data, &sic)
-	if err != nil && len(data) > 0 {
-		return err
-	}
-
-	for _, i := range node.secrets {
-		sic[node.domain] = append(sic[node.domain], &secretItem{
-			Timestamp: i.timeStamp,
-			Key:       i.key,
-		})
-	}
-
-	data, err = json.MarshalIndent(&sic, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	err = writeLocalStore(l.secretsFile, data)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // readLocalStore reads the contents of a file and returns the binary data.

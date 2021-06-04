@@ -174,6 +174,24 @@ var registerTemplate = newHTMLTemplate("register", `
 				<p>Register node '{{.Domain}}' to a network.</p>
 				{{else}}
 				<p>Success. Node '{{.Domain}}' registered to network '{{.Network}}'.</p>
+				<p>The new node will become active after the storage service is refreshed and the 'Starts' time has passed.<p>
+				{{end}}
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<p><label for="store">Store</label></p>
+			</td>
+			<td>
+				<p><select id="store" name="store" {{if .ReadOnly}}disabled{{end}}>
+					{{ range $store := .StoreNames }}
+						<option value="{{$store}}">{{$store}}</option>
+					{{ end }}
+				</select></p>
+			</td>
+			<td>
+				{{if .DisplayErrors}}
+				<p>{{.StoreError}}</p>
 				{{end}}
 			</td>
 		</tr>
@@ -187,6 +205,19 @@ var registerTemplate = newHTMLTemplate("register", `
 			<td>
 				{{if .DisplayErrors}}
 				<p>{{.NetworkError}}</p>
+				{{end}}
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<p><label for="starts">Starts (UTC)</label></p>
+			</td>
+			<td>
+				<p><input type="datetime-local" id="starts" name="starts" value="{{.StartsString}}" {{if .ReadOnly}}disabled{{end}}></p>
+			</td>
+			<td>
+				{{if .DisplayErrors}}
+				<p>{{.StartsError}}</p>
 				{{end}}
 			</td>
 		</tr>
@@ -222,6 +253,14 @@ var registerTemplate = newHTMLTemplate("register", `
 			</td>
 			<td>
 				<p><input type="radio" id="storage" name="role" value="1" {{if .ReadOnly}}disabled{{end}} {{if eq .Role 1}}checked{{end}}></p>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<p><label for="2">Share Node</label></p>
+			</td>
+			<td>
+				<p><input type="radio" id="share" name="role" value="2" {{if .ReadOnly}}disabled{{end}} {{if eq .Role 2}}checked{{end}}></p>
 			</td>
 		</tr>
 		<tr>
@@ -342,6 +381,47 @@ var javaScriptReturnTemplate = newJavaScriptTemplate("javaScriptReturn", `
 var s=document.createElement("script");
 s.innerText="{{.Table}}Complete('{{.Results}}')";
 document.currentScript.parentNode.appendChild(s);`)
+
+var swiftNodesTemplate = newHTMLTemplate("swiftNodes", `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<link rel="icon" href="data:;base64,=">
+	<style>
+	table, th, td {
+		border: 1px solid black;
+	}
+	</style>
+</head>
+<body>
+<table>
+    <tr>
+        <th>Network</th>
+        <th>Domain</th>
+        <th>Created</th>
+        <th>Starts</th>
+        <th>Expires</th>
+        <th>Role</th>
+        <th>Accessed</th>
+        <th>Alive</th>
+    </tr>
+    {{ range .NodeViewItems }}
+        <tr>
+            <td>{{ .Network }}</td>
+            <td>{{ .Domain }}</td>
+            <td>{{ .Created }}</td>
+            <td>{{ .Starts }}</td>
+            <td>{{ .Expires }}</td>
+            <td>{{ .Role }}</td>
+            <td>{{ .Accessed }}</td>
+            <td>{{ .Alive }}</td>
+        </tr>
+    {{ end}}
+</table>
+</body>
+</html>
+`)
 
 func newHTMLTemplate(n string, h string) *template.Template {
 	c := removeHTMLWhiteSpace(h)

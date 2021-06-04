@@ -18,6 +18,7 @@ package swift
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"time"
 )
 
@@ -49,4 +50,39 @@ func newSecretFromKey(key string, timeStamp time.Time) (*secret, error) {
 		return nil, err
 	}
 	return &secret{timeStamp, key, x}, nil
+}
+
+// MarshalJSON marshals a secret to JSON without having to expose the fields in
+// the secret struct. This is achieved by converting a secret to a map.
+func (s *secret) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"timeStamp": s.timeStamp,
+		"key":       s.key,
+	})
+}
+
+// UnmarshalJSON called by json.Unmarshall unmarshals a secret from JSON and
+// turns it into a new secret. As the secret is marshalled to JSON by converting
+// it to a map, the unmarshalling from JSON needs to handle the type of each
+// field correctly.
+func (s *secret) UnmarshalJSON(b []byte) error {
+	var d map[string]interface{}
+	err := json.Unmarshal(b, &d)
+	if err != nil {
+		return err
+	}
+
+	k := d["key"].(string)
+
+	t, err := time.Parse(time.RFC3339Nano, d["timeStamp"].(string))
+	if err != nil {
+		return err
+	}
+
+	sp, err := newSecretFromKey(k, t)
+	*s = *sp
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -31,6 +31,7 @@ import (
 
 // AWS is a implementation of sws.Store for AWS DynamoDB.
 type AWS struct {
+	name      string
 	timestamp time.Time          // The last time the maps were refreshed
 	svc       *dynamodb.DynamoDB // Reference to the creators table
 	common
@@ -40,7 +41,8 @@ type AWS struct {
 type NodeItem struct {
 	Network      string    // The name of the network the node belongs to
 	Domain       string    // The domain name associated with the node
-	Created      time.Time // The time that the node first came online
+	Created      time.Time // The time that the node was created
+	Starts       time.Time // The time that the node goes online
 	Expires      int64     `json:"expires"` // The time that the node will retire from the network
 	Role         int       // The role the node has in the network
 	ScramblerKey string    // Secret used to scramble data with fixed nonce
@@ -57,18 +59,18 @@ type SecretItem struct {
 // NewAWS creates a new instance of the AWS structure
 func NewAWS() (*AWS, error) {
 	var a AWS
-	var sess *session.Session
-
+	var s *session.Session
+	a.name = "AWS DynamoDB Store"
 	// Configure session with credentials from .aws/credentials or env and
 	// region from .aws/config or env
-	sess = session.Must(session.NewSessionWithOptions(session.Options{
+	s = session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 
-	if sess == nil {
+	if s == nil {
 		return nil, errors.New("AWS session is nil")
 	}
-	a.svc = dynamodb.New(sess)
+	a.svc = dynamodb.New(s)
 
 	_, err := a.awsCreateTables()
 	if err != nil {
@@ -281,9 +283,17 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 	return a.svc.CreateTable(secretsTableInput)
 }
 
+func (a *AWS) getName() string {
+	return a.name
+}
+
+func (a *AWS) getReadOnly() bool {
+	return false
+}
+
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (a *AWS) getNode(domain string) (*Node, error) {
+func (a *AWS) getNode(domain string) (*node, error) {
 	n, err := a.common.getNode(domain)
 	if err != nil {
 		return nil, err
@@ -314,19 +324,42 @@ func (a *AWS) getNodes(network string) (*nodes, error) {
 	return ns, err
 }
 
+// getAllNodes refreshes internal data and returns all nodes.
+func (a *AWS) getAllNodes() ([]*node, error) {
+	err := a.refresh()
+	if err != nil {
+		return nil, err
+	}
+	return a.common.getAllNodes()
+}
+
+// iterateNodes calls the callback function for each node
+func (a *AWS) iterateNodes(
+	callback func(n *node, s interface{}) error,
+	s interface{}) error {
+	for _, n := range a.nodes {
+		err := callback(n, s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SetNode inserts or updates the node.
-func (a *AWS) setNode(node *Node) error {
-	err := a.setNodeSecrets(node)
+func (a *AWS) setNode(n *node) error {
+	err := a.setNodeSecrets(n)
 	if err != nil {
 		return err
 	}
 	item := NodeItem{
-		node.network,
-		node.domain,
-		node.created,
-		node.expires.Unix(),
-		node.role,
-		node.scrambler.key}
+		n.network,
+		n.domain,
+		n.created,
+		n.starts,
+		n.expires.Unix(),
+		n.role,
+		n.scrambler.key}
 
 	av, err := dynamodbattribute.MarshalMap(item)
 	if err != nil {
@@ -366,7 +399,7 @@ func (a *AWS) refresh() error {
 		net := nets[v.network]
 		if net == nil {
 			net = &nodes{}
-			net.dict = make(map[string]*Node)
+			net.dict = make(map[string]*node)
 			nets[v.network] = net
 		}
 		net.all = append(net.all, v)
@@ -388,9 +421,9 @@ func (a *AWS) refresh() error {
 	return nil
 }
 
-func (a *AWS) fetchNodes() (map[string]*Node, error) {
+func (a *AWS) fetchNodes() (map[string]*node, error) {
 	var err error
-	ns := make(map[string]*Node)
+	ns := make(map[string]*node)
 
 	// Fetch all the records from the nodes table in Dynamo.
 	params := &dynamodb.ScanInput{
@@ -407,22 +440,23 @@ func (a *AWS) fetchNodes() (map[string]*Node, error) {
 	// Iterate over the records creating nodes and adding them to the networks
 	// map.
 	for _, i := range result.Items {
-		nodeItem := NodeItem{}
+		ni := NodeItem{}
 
-		err = dynamodbattribute.UnmarshalMap(i, &nodeItem)
+		err = dynamodbattribute.UnmarshalMap(i, &ni)
 		if err != nil {
 			fmt.Println("Got error un-marshalling:")
 			fmt.Println(err.Error())
 			return nil, err
 		}
 
-		ns[nodeItem.Domain], err = newNode(
-			nodeItem.Network,
-			nodeItem.Domain,
-			nodeItem.Created,
-			time.Unix(nodeItem.Expires, 0).UTC(),
-			nodeItem.Role,
-			nodeItem.ScramblerKey)
+		ns[ni.Domain], err = newNode(
+			ni.Network,
+			ni.Domain,
+			ni.Created,
+			ni.Starts,
+			time.Unix(ni.Expires, 0).UTC(),
+			ni.Role,
+			ni.ScramblerKey)
 		if err != nil {
 			return nil, err
 		}
@@ -431,7 +465,7 @@ func (a *AWS) fetchNodes() (map[string]*Node, error) {
 	return ns, err
 }
 
-func (a *AWS) addSecrets(ns map[string]*Node) error {
+func (a *AWS) addSecrets(ns map[string]*node) error {
 
 	// Fetch all the records from the secrets table in DynamoDB.
 	params := &dynamodb.ScanInput{
@@ -473,14 +507,14 @@ func (a *AWS) addSecrets(ns map[string]*Node) error {
 	return nil
 }
 
-func (a *AWS) setNodeSecrets(node *Node) error {
+func (a *AWS) setNodeSecrets(n *node) error {
 	var pi []*dynamodb.WriteRequest
 
-	for _, s := range node.secrets {
+	for _, s := range n.secrets {
 		item := SecretItem{
-			node.domain,
+			n.domain,
 			s.timeStamp,
-			node.expires.Unix(),
+			n.expires.Unix(),
 			s.key}
 
 		av, err := dynamodbattribute.MarshalMap(item)

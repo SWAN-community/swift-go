@@ -117,7 +117,7 @@ func TestNodesHomeNode(t *testing.T) {
 func createNodes() (*nodes, error) {
 	ns := newNodes()
 	for i := 0; i < 100; i++ {
-		var n *Node
+		var n *node
 		s, err := newSecret()
 		if err != nil {
 			return nil, err
