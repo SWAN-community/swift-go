@@ -176,7 +176,8 @@ func (n *node) DecryptAndDecode(d []byte) (*Results, error) {
 	return r, nil
 }
 
-// TODO: use this to replace duplicate structs to mashal nodes to and from json
+// MarshalJSON marshals a node to JSON without having to expose the fields in
+// the node struct. This is achieved by converting a node to a map.
 func (n *node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"network":   n.network,
@@ -190,7 +191,10 @@ func (n *node) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// TODO: use this to replace duplicate structs to mashal nodes to and from json
+// UnmarshalJSON called by json.Unmarshall unmarshals a node from JSON and turns
+// it into a new node. As the node is marshalled to JSON by converting it to a
+// map, the unmarshalling from JSON needs to handle the type of each field
+// correctly.
 func (n *node) UnmarshalJSON(b []byte) error {
 	var d map[string]interface{}
 	err := json.Unmarshal(b, &d)
@@ -216,8 +220,8 @@ func (n *node) UnmarshalJSON(b []byte) error {
 	role := int(d["role"].(float64))
 
 	np, err := newNode(
-		fmt.Sprintf("%s", d["network"]),
-		fmt.Sprintf("%s", d["domain"]),
+		d["network"].(string),
+		d["domain"].(string),
 		created,
 		starts,
 		expires,

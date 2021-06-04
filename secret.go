@@ -52,7 +52,8 @@ func newSecretFromKey(key string, timeStamp time.Time) (*secret, error) {
 	return &secret{timeStamp, key, x}, nil
 }
 
-// TODO: use this to replace duplicate structs to mashal secrets to and from json
+// MarshalJSON marshals a secret to JSON without having to expose the fields in
+// the secret struct. This is achieved by converting a secret to a map.
 func (s *secret) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"timeStamp": s.timeStamp,
@@ -60,7 +61,10 @@ func (s *secret) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// TODO: use this to replace duplicate structs to mashal secrets to and from json
+// UnmarshalJSON called by json.Unmarshall unmarshals a secret from JSON and
+// turns it into a new secret. As the secret is marshalled to JSON by converting
+// it to a map, the unmarshalling from JSON needs to handle the type of each
+// field correctly.
 func (s *secret) UnmarshalJSON(b []byte) error {
 	var d map[string]interface{}
 	err := json.Unmarshal(b, &d)
