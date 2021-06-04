@@ -106,6 +106,7 @@ func (o *operation) Language() string {
 // first and last operation occur against a consistent node for the web browser.
 // TODO: What should the behavior be if the home node does not exist, what to do
 // with the error from getNode.
+// See https://github.com/SWAN-community/swift/issues/2
 func (o *operation) HomeNode() *node {
 	if o.homeNodePtr == nil {
 		if o.homeNode != "" {
