@@ -5,6 +5,10 @@
 Shared Web InFormaTion (SWIFT) - an open source cryptographically secure web 
 solution for sharing information across domains implemented in Go
 
+## Storage Implementation
+
+See the [https://github.com/SWAN-community/swift/blob/main/storage.md](SWIFT storage explainer) in the SWIFT repo for how node details are stored.
+
 ## Storage Setup
 
 See the 
