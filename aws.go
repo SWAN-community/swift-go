@@ -63,7 +63,9 @@ func NewAWS() (*AWS, error) {
 	a.name = "AWS DynamoDB Store"
 	// Configure session with credentials from .aws/credentials or env and
 	// region from .aws/config or env
-	s = session.Must(session.NewSession())
+	s = session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
 
 	if s == nil {
 		return nil, errors.New("AWS session is nil")
