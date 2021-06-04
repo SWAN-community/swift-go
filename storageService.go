@@ -101,6 +101,11 @@ func (svc *storageService) getAllNodes() ([]*node, error) {
 	return svc.store.getAllNodes()
 }
 
+// getAllActiveNodes abstracts calls to storageManager.getAllNodes
+func (svc *storageService) getAllActiveNodes() ([]*node, error) {
+	return svc.store.getAllActiveNodes()
+}
+
 // setNodes abstracts calls to storageManager.setNodes
 func (svc *storageService) setNodes(store string, ns ...*node) error {
 	return svc.store.setNodes(store, ns...)
