@@ -28,27 +28,19 @@ import (
 // Local store implementation for SWIFT - data is stored in maps in memory and
 // persisted on disk in JSON files.
 type Local struct {
-	name        string    //
-	timestamp   time.Time // The last time the maps were refreshed
-	nodesFile   string    // Reference to the node table
-	secretsFile string    // Reference to the table of node secrets
+	name      string    // The name of the store.
+	timestamp time.Time // The last time the maps were refreshed
+	nodesFile string    // Reference to the node table
 	common
 }
 
-// secretItem is the JSON representation of a SWIFT Secret
-type secretItem struct {
-	Timestamp time.Time
-	Key       string
-}
-
-// NewLocalStore creates a new instance of Local and configures the paths for
-// the persistent JSON files.
-func NewLocalStore(secretsFile string, nodesFile string) (*Local, error) {
+// NewLocalStore creates a new instance of Local and configures the path for
+// the persistent JSON file.
+func NewLocalStore(nodesFile string) (*Local, error) {
 	var l Local
 
 	l.name = "Local Storage"
 	l.nodesFile = nodesFile
-	l.secretsFile = secretsFile
 
 	l.mutex = &sync.Mutex{}
 	err := l.refresh()
@@ -123,11 +115,11 @@ func (l *Local) iterateNodes(
 
 // SetNode inserts or updates the node.
 func (l *Local) setNode(n *node) error {
-	err := l.setNodeSecrets(n)
-	if err != nil {
-		return err
-	}
-	nis := make(map[string]*nodeItem)
+	// err := l.setNodeSecrets(n)
+	// if err != nil {
+	// 	return err
+	// }
+	nis := make(map[string]*node)
 
 	// Fetch all the records from the nodes file.
 	data, err := ioutil.ReadFile(l.nodesFile)
@@ -140,15 +132,7 @@ func (l *Local) setNode(n *node) error {
 		return err
 	}
 
-	nis[n.domain] = &nodeItem{
-		Network:     n.network,
-		Domain:      n.domain,
-		Created:     n.created,
-		Starts:      n.starts,
-		Expires:     n.expires,
-		Role:        n.role,
-		ScrambleKey: n.scrambler.key,
-	}
+	nis[n.domain] = n
 
 	data, err = json.MarshalIndent(&nis, "", "\t")
 	if err != nil {
@@ -168,10 +152,6 @@ func (l *Local) refresh() error {
 
 	// Fetch the nodes and then add the secrets.
 	ns, err := l.fetchNodes()
-	if err != nil {
-		return err
-	}
-	err = l.addSecrets(ns)
 	if err != nil {
 		return err
 	}
@@ -203,48 +183,9 @@ func (l *Local) refresh() error {
 	return nil
 }
 
-func (l *Local) addSecrets(ns map[string]*node) error {
-	sc := make(map[string][]*secretItem)
-
-	// Fetch all records from the secrets file
-	data, err := readLocalStore(l.secretsFile)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(data, &sc)
-	if err != nil && len(data) > 0 {
-		return err
-	}
-
-	// Iterate over the secrets adding them to nodes.
-	for k, s := range sc {
-		if err != nil {
-			return err
-		}
-		if ns[k] != nil {
-			for _, i := range s {
-				s, err := newSecretFromKey(i.Key, i.Timestamp)
-				if err != nil {
-					return err
-				}
-				ns[k].addSecret(s)
-			}
-		}
-	}
-
-	// Sort the secrets so the most recent is at the start of the array.
-	for _, n := range ns {
-		n.sortSecrets()
-	}
-
-	return nil
-}
-
 func (l *Local) fetchNodes() (map[string]*node, error) {
 	var err error
 	ns := make(map[string]*node)
-	nis := make(map[string]*nodeItem)
 
 	// Fetch all the records from the nodes file.
 	data, err := readLocalStore(l.nodesFile)
@@ -252,81 +193,14 @@ func (l *Local) fetchNodes() (map[string]*node, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(data, &nis)
+	err = json.Unmarshal(data, &ns)
 	if err != nil && len(data) > 0 {
 		return nil, err
 	} else if len(data) == 0 {
 		return ns, nil
 	}
 
-	// Iterate over the records creating nodes and adding them to the networks
-	// map.
-	for k, n := range nis {
-		ns[k], err = newNode(
-			n.Network,
-			n.Domain,
-			n.Created,
-			n.Starts,
-			n.Expires,
-			n.Role,
-			n.ScrambleKey)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return ns, err
-}
-
-func (l *Local) setNodeSecrets(n *node) error {
-	sic := make(map[string][]*secretItem)
-
-	// Fetch all records from the secrets file
-	data, err := readLocalStore(l.secretsFile)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(data, &sic)
-	if err != nil && len(data) > 0 {
-		return err
-	}
-
-	for _, i := range n.secrets {
-		s := sic[n.domain]
-
-		// check if secret exists already
-		add := true
-		for _, v := range s {
-			if v.Key == i.key {
-				add = false
-				break
-			}
-		}
-
-		// skip if secret already exists
-		if !add {
-			continue
-		}
-
-		// add new secret item to store
-		sic[n.domain] = append(sic[n.domain], &secretItem{
-			Timestamp: i.timeStamp,
-			Key:       i.key,
-		})
-	}
-
-	data, err = json.MarshalIndent(&sic, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	err = writeLocalStore(l.secretsFile, data)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // readLocalStore reads the contents of a file and returns the binary data.

@@ -54,25 +54,6 @@ type node struct {
 	alive     bool      // True if the node is reachable via a HTTP request
 }
 
-// nodeItem is the JSON representation of a SWIFT Node. It exports fields so
-// they can be marshalled by the json library.
-type nodeItem struct {
-	Network     string
-	Domain      string
-	Created     time.Time
-	Starts      time.Time
-	Expires     time.Time
-	Role        int
-	ScrambleKey string
-}
-
-// nodeShareItem extends nodeItem to include secrets. This struct is used for
-// sharing nodes.
-type nodeShareItem struct {
-	nodeItem
-	Secrets []secretItem
-}
-
 // Domain returns the internet domain associated with the Node.
 func (n *node) Domain() string { return n.domain }
 
@@ -205,7 +186,7 @@ func (n *node) MarshalJSON() ([]byte, error) {
 		"expires":   n.expires,
 		"role":      n.role,
 		"secrets":   n.secrets,
-		"scrambler": n.scrambler,
+		"scrambler": n.scrambler.key,
 	})
 }
 
@@ -216,16 +197,54 @@ func (n *node) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	n, err = newNode(
+
+	created, err := time.Parse(time.RFC3339Nano, d["created"].(string))
+	if err != nil {
+		return err
+	}
+
+	starts, err := time.Parse(time.RFC3339Nano, d["starts"].(string))
+	if err != nil {
+		return err
+	}
+
+	expires, err := time.Parse(time.RFC3339Nano, d["expires"].(string))
+	if err != nil {
+		return err
+	}
+
+	role := int(d["role"].(float64))
+
+	np, err := newNode(
 		fmt.Sprintf("%s", d["network"]),
 		fmt.Sprintf("%s", d["domain"]),
-		d["created"].(time.Time),
-		d["starts"].(time.Time),
-		d["expires"].(time.Time),
-		d["role"].(int),
+		created,
+		starts,
+		expires,
+		role,
 		d["scrambler"].(string),
 	)
-	n.secrets = d["secrets"].([]*secret)
+	secrets := d["secrets"].([]interface{})
+
+	for _, secret := range secrets {
+		s := secret.(map[string]interface{})
+
+		k := s["key"].(string)
+
+		t, err := time.Parse(time.RFC3339Nano, s["timeStamp"].(string))
+		if err != nil {
+			return err
+		}
+
+		sec, err := newSecretFromKey(k, t)
+		if err != nil {
+			return err
+		}
+
+		np.secrets = append(n.secrets, sec)
+	}
+
+	*n = *np
 	if err != nil {
 		return err
 	}

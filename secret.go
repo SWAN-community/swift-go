@@ -67,10 +67,16 @@ func (s *secret) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	s, err = newSecretFromKey(
-		d["key"].(string),
-		d["timeStamp"].(time.Time),
-	)
+
+	k := d["key"].(string)
+
+	t, err := time.Parse(time.RFC3339Nano, d["timeStamp"].(string))
+	if err != nil {
+		return err
+	}
+
+	sp, err := newSecretFromKey(k, t)
+	*s = *sp
 	if err != nil {
 		return err
 	}

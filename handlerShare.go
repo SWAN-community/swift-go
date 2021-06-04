@@ -26,7 +26,6 @@ import (
 // all known active nodes.
 func HandlerShare(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var nis []nodeShareItem
 		var err error
 
 		// Get the node associated with the request.
@@ -45,52 +44,27 @@ func HandlerShare(s *Services) http.HandlerFunc {
 		}
 
 		// Get all active nodes.
-		ns, err := s.store.store.getAllActiveNodes()
+		ns, err := s.store.getAllActiveNodes()
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
-		// Turn items in array of active nodes into nodeShareItems so that they
-		// can be marshalled to JSON.
-		for _, n := range ns {
-			var secrets []secretItem
-			for _, v := range n.secrets {
-				secrets = append(secrets, secretItem{
-					Key:       v.key,
-					Timestamp: v.timeStamp,
-				})
-			}
-
-			newNode := nodeShareItem{
-				nodeItem: nodeItem{
-					Network:     n.network,
-					Domain:      n.domain,
-					Created:     n.created,
-					Starts:      n.starts,
-					Expires:     n.expires,
-					Role:        n.role,
-					ScrambleKey: n.scrambler.key,
-				},
-				Secrets: secrets,
-			}
-			nis = append(nis, newNode)
-		}
-
 		// Create JSON response.
-		j, err := json.Marshal(nis)
+		j, err := json.Marshal(ns)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
 		// Encrypt the JSON response using the nodes shared secret.
-		b, err := a.encrypt(j)
-		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
-			return
-		}
+		// b, err := a.encrypt(j)
+		// if err != nil {
+		// 	returnAPIError(s, w, err, http.StatusBadRequest)
+		// 	return
+		// }
 
-		w.Write(b)
+		w.Write(j)
+		//		w.Write(b)
 	}
 }
