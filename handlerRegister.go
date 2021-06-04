@@ -93,8 +93,6 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 			d.Starts, err = time.Parse("2006-01-02T15:04", r.FormValue("starts"))
 			if err != nil {
 				d.StartsError = err.Error()
-			} else if d.Starts.Before(time.Now().UTC()) {
-				d.StartsError = "Expiry date must be in the future"
 			}
 		}
 
