@@ -82,7 +82,7 @@ func HandlerStore(
 						return i.role == roleStorage &&
 							i != o.thisNode &&
 							i.domain != o.HomeNode().domain &&
-							i.starts.After(time.Now().UTC())
+							i.starts.Before(time.Now().UTC())
 					})
 					c--
 				}
