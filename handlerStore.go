@@ -18,12 +18,10 @@ package swift
 
 import (
 	"encoding/base64"
-	"encoding/binary"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
@@ -331,31 +329,23 @@ func (o *operation) setCookies(
 }
 
 // setBrowserWarningCookie set a cookie to verify cookies are supported. Use a
-// random number for the name of the cookie. We only need to know it's present
-// in the future not any value.
+// single key "t" with no value. We only need to know it's present in the future
+// and do not need any values. Use the home node timeout to ensure it is not
+// retained for a long period of time.
 func (o *operation) setBrowserWarningCookie(
 	s *Services,
 	w http.ResponseWriter,
 	r *http.Request) error {
-
-	// Create a random name for the cookie.
-	rand.Seed(time.Now().UnixNano())
-	bs := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bs, uint32(rand.Int()))
-
-	// Create the SWIFT pair.
-	t := time.Now().UTC()
-	var b pair
-	b.key = o.thisNode.scrambleByteArray(bs)
-	b.created = t
-	b.expires = t.Add(s.config.HomeNodeTimeoutDuration())
-
-	// Set the cookie.
-	err := o.setValueInCookie(w, r, &b)
-	if err != nil {
-		return err
-	}
-
+	cookie := http.Cookie{
+		Name:     "t",
+		Domain:   getDomain(r.Host),
+		Value:    "",
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Secure:   o.services.config.Scheme == "https",
+		HttpOnly: true,
+		Expires:  time.Now().UTC().Add(s.config.HomeNodeTimeoutDuration())}
+	http.SetCookie(w, &cookie)
 	return nil
 }
 
