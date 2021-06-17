@@ -243,8 +243,8 @@ func (a *Azure) fetchNodes() (map[string]*node, error) {
 			i.PartitionKey,
 			i.RowKey,
 			i.TimeStamp,
-			i.Properties[startsFieldName].(time.Time),
-			i.Properties[expiresFieldName].(time.Time),
+			getNodeStartTime(i.Properties, i.TimeStamp),
+			getNodeEndTime(i.Properties),
 			int(i.Properties[roleFieldName].(float64)),
 			i.Properties[scramblerKeyFieldName].(string))
 		if err != nil {
@@ -253,6 +253,22 @@ func (a *Azure) fetchNodes() (map[string]*node, error) {
 	}
 
 	return ns, err
+}
+
+func getNodeEndTime(m map[string]interface{}) time.Time {
+	v := m[expiresFieldName]
+	if v == nil {
+		return time.Unix(1<<63-1, 999999999)
+	}
+	return v.(time.Time)
+}
+
+func getNodeStartTime(m map[string]interface{}, d time.Time) time.Time {
+	v := m[startsFieldName]
+	if v == nil {
+		return d
+	}
+	return v.(time.Time)
 }
 
 func (a *Azure) setNodeSecrets(n *node) error {
