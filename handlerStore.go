@@ -330,8 +330,7 @@ func (o *operation) setCookies(
 
 // setBrowserWarningCookie set a cookie to verify cookies are supported. Use a
 // single key "t" with no value. We only need to know it's present in the future
-// and do not need any values. Use the home node timeout to ensure it is not
-// retained for a long period of time.
+// and do not need any values. Expires after a minute.
 func (o *operation) setBrowserWarningCookie(
 	s *Services,
 	w http.ResponseWriter,
@@ -344,7 +343,7 @@ func (o *operation) setBrowserWarningCookie(
 		SameSite: http.SameSiteLaxMode,
 		Secure:   o.services.config.Scheme == "https",
 		HttpOnly: true,
-		Expires:  time.Now().UTC().Add(s.config.HomeNodeTimeoutDuration())}
+		Expires:  time.Now().UTC().Add(time.Minute)}
 	http.SetCookie(w, &cookie)
 	return nil
 }
