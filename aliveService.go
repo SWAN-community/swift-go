@@ -38,8 +38,8 @@ type aliveService struct {
 	pollingInterval time.Duration
 }
 
-// newAliveService creates a new instance of type alive and starts the background
-// polling service,
+// newAliveService creates a new instance of type alive and starts the
+// background polling service.
 func newAliveService(c Configuration, s storageManager) *aliveService {
 	var a aliveService
 
@@ -47,46 +47,47 @@ func newAliveService(c Configuration, s storageManager) *aliveService {
 	a.store = s
 
 	if a.config.AlivePollingSeconds == 0 {
-		panic("configured for 'alivePollingSeconds' is not valid, please set to " +
-			"a positive integer")
+		panic("configured for 'alivePollingSeconds' is not valid, please set " +
+			"to a positive integer")
 	}
-	a.pollingInterval = time.Duration(time.Duration(a.config.AlivePollingSeconds) * time.Second)
+	a.pollingInterval = time.Duration(time.Duration(
+		a.config.AlivePollingSeconds) * time.Second)
 
-	// start the polling service
-	a.start()
+	// start the polling loop
+	go a.aliveLoop()
 
 	return &a
 }
 
-// start a goroutine which checks nodes are alive in the background.
-func (a *aliveService) start() {
-	go a.checkAlive()
-}
-
-// stop checking if nodes are alive.
-func (a *aliveService) stop() {
-	a.ticker.Stop()
-}
-
 // checkAlive starts a new ticker and stores a reference to it in the
-// aliveService. For each tick, all nodes known by the storageService are polled.
-func (a *aliveService) checkAlive() {
+// aliveService. For each tick, all nodes known by the storageService are
+// polled.
+func (a *aliveService) aliveLoop() {
+	c := &http.Client{
+		Timeout: a.pollingInterval,
+	}
+	defer c.CloseIdleConnections()
 	a.ticker = time.NewTicker(a.pollingInterval)
-	defer a.ticker.Stop()
 	for _ = range a.ticker.C {
+		a.ticker.Stop()
 		for _, n := range a.store.nodes {
-			a.pollNode(n)
+			a.pollNode(n, c)
 		}
+		a.ticker.Reset(a.pollingInterval)
 	}
 }
 
 // pollNode polls the given node to determine if it is alive and responding to
 // requests. If the node has not been accessed for longer than the polling
 // interval then the node is polled with a nonce value that has been encrypted
-// with the polled node's shared secret. If there is a  response back from the
+// with the polled node's shared secret. If there is a response back from the
 // polled node and the response value is the same as the original nonce value
 // then the node's 'alive' value is set to true.
-func (a *aliveService) pollNode(n *node) {
+//
+// n is the node to be polled
+//
+// c is the http.Client to use for the request
+func (a *aliveService) pollNode(n *node, c *http.Client) {
 	if time.Now().UTC().Sub(n.accessed) >= a.pollingInterval {
 
 		// create a new nonce value
@@ -114,7 +115,7 @@ func (a *aliveService) pollNode(n *node) {
 
 		// call the node's 'alive' endpoint with the encrypted nonce value
 		// and get the response.
-		b2, err := a.callAlive(n, b1)
+		b2, err := a.callAlive(n, c, b1)
 		if err != nil {
 			if a.config.Debug {
 				log.Printf("SWIFT: alive check failed for node "+
@@ -140,10 +141,11 @@ func (a *aliveService) pollNode(n *node) {
 // callAlive sends a POST request to a given nodes alive endpoint, the request
 // contains the the given data. On a successful request, the response body is
 // then returned.
-func (a *aliveService) callAlive(n *node, d []byte) ([]byte, error) {
-	client := &http.Client{
-		Timeout: a.pollingInterval,
-	}
+func (a *aliveService) callAlive(
+	n *node,
+	c *http.Client,
+	d []byte) ([]byte, error) {
+
 	url := url.URL{
 		Scheme: a.config.Scheme,
 		Host:   n.domain,
@@ -155,7 +157,7 @@ func (a *aliveService) callAlive(n *node, d []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	r, err := client.Do(req)
+	r, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
