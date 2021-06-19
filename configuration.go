@@ -37,7 +37,7 @@ type Configuration struct {
 	StorageManagerRefreshMinutes int `json:"storageManagerRefreshMinutes"`
 	// The maximum number of Store instances that can be referenced by a storage
 	// manager.
-	MaxStores int `json:"maxStores`
+	MaxStores int `json:"maxStores"`
 	// The length of time in seconds values stored in SWIFT nodes can be relied
 	// upon to be current. Used by the home node to determine if it should
 	// consult other nodes in the network before returning it's current values.
