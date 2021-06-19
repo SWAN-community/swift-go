@@ -119,8 +119,10 @@ func newStorageManager(c Configuration, sts ...Store) (*storageManager, error) {
 		sm.stores = append(sm.stores, sts[i])
 	}
 
-	// create new alive service
-	sm.alive = newAliveService(c, sm)
+	// create new alive service if the alive polling setting is more than zero
+	if c.AlivePollingSeconds > 0 {
+		sm.alive = newAliveService(c, sm)
+	}
 
 	return &sm, nil
 }
