@@ -121,6 +121,8 @@ var blankTemplate = newHTMLTemplate("blank", `
 <html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
+	<title>{{.Title}}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" href="data:;base64,=">
 </head>
 <body style="background-color: {{.BackgroundColor}}">
@@ -342,18 +344,23 @@ var warningTemplate = newHTMLTemplate("warning", `
 </body>
 </html>`)
 
+var postMessageScript = `
+const r = "{{.ReturnURL}}";
+const d = "{{.Results}}";
+window.opener.postMessage(d,r);`
+
 var postMessageTemplate = newHTMLTemplate("postMessage", `
 <!DOCTYPE html>
 <html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
+	<title>{{.Title}}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" href="data:;base64,=">
 	<style>`+bodyStyle+`</style>
 </head>
 <body><table>`+progressUI+`</table>
-	<script>
-		window.opener.postMessage("{{.Results}}","{{.ReturnURL}}");
-	</script>
+	<script>`+postMessageScript+`</script>
 </body>
 </html>`)
 
@@ -362,13 +369,13 @@ var postMessageBlankTemplate = newHTMLTemplate("postMessage", `
 <html lang="{{.Language}}">
 <head>
 	<meta charset="utf-8" />
+	<title>{{.Title}}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" href="data:;base64,=">
 	<style>`+bodyStyle+`</style>
 </head>
 <body>
-	<script>
-		window.opener.postMessage("{{.Results}}","{{.ReturnURL}}");
-	</script>
+<script>`+postMessageScript+`</script>
 </body>
 </html>`)
 
@@ -388,6 +395,7 @@ var swiftNodesTemplate = newHTMLTemplate("swiftNodes", `
 <head>
 	<meta charset="utf-8" />
 	<link rel="icon" href="data:;base64,=">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
 	table, th, td {
 		border: 1px solid black;
