@@ -23,8 +23,8 @@ import (
 
 // handlerAlive is a handler which take the value from the request body and
 // tries to decrypt it using the shared secret of the node associated with the
-// request. If successful then the un-encrypted value is then returned in the
-// response.
+// request. If successful then the decrypted value is returned in the response.
+// The caller will then know that the shared secret they have is still valid.
 func handlerAlive(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -38,14 +38,14 @@ func handlerAlive(s *Services) http.HandlerFunc {
 		// Get the node associated with the request.
 		n := s.store.getNode(r.Host)
 
-		// Decode the body to form the byte array.
-		nonce, err := n.Decrypt(body)
+		// Decode the body to form the decrypted byte array.
+		decrypted, err := n.Decrypt(body)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
 		}
 
-		// The output is a binary array.
-		sendResponse(s, w, "application/octet-stream", nonce)
+		// Return the decrypted information.
+		sendResponse(s, w, "application/octet-stream", decrypted)
 	}
 }
