@@ -67,7 +67,7 @@ func (p *Pair) Values() [][]byte { return p.values }
 func (p *Pair) Value() string {
 	var s = make([]string, len(p.values))
 	for i, v := range p.values {
-		s[i] = base64.RawStdEncoding.EncodeToString(v)
+		s[i] = base64.StdEncoding.EncodeToString(v)
 	}
 	return strings.Join(s, "\r\n")
 }

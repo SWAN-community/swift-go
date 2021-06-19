@@ -285,7 +285,7 @@ func createPairWithValue(k string, v string, i []int) (*pair, error) {
 	// Turn the value into a byte array. If the value is a base 64 string then
 	// use the resulting byte array. If it is not a base 64 string then use the
 	// string value provided.
-	b, err := base64.RawStdEncoding.DecodeString(v)
+	b, err := base64.StdEncoding.DecodeString(v)
 	if err != nil {
 		b = []byte(v)
 	}

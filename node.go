@@ -257,7 +257,7 @@ func (n *node) UnmarshalJSON(b []byte) error {
 
 func (n *node) getValueFromCookie(c *http.Cookie) (*pair, error) {
 	var p pair
-	v, err := base64.RawStdEncoding.DecodeString(c.Value)
+	v, err := base64.StdEncoding.DecodeString(c.Value)
 	if err != nil {
 		return nil, err
 	}

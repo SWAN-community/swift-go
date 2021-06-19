@@ -342,7 +342,7 @@ func (o *operation) setValueInCookie(
 	cookie := http.Cookie{
 		Name:     o.thisNode.scramble(p.key),
 		Domain:   getDomain(r.Host),
-		Value:    base64.RawStdEncoding.EncodeToString(v),
+		Value:    base64.StdEncoding.EncodeToString(v),
 		Path:     fmt.Sprintf("/%s", o.thisNode.scramble(o.table)),
 		SameSite: ss,
 		Secure:   s,
