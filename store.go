@@ -67,10 +67,10 @@ func NewStore(swiftConfig Configuration) []Store {
 		os.Getenv("AZURE_STORAGE_ACCOUNT"),
 		os.Getenv("AZURE_STORAGE_ACCESS_KEY"),
 		os.Getenv("GCP_PROJECT"),
-		os.Getenv("SWIFT_NODES_FILE"),
+		os.Getenv("SWIFT_FILE"),
 		os.Getenv("AWS_ENABLED")
 	if len(azureAccountName) > 0 || len(azureAccountKey) > 0 {
-		log.Printf("SWIFT: Using Azure Table Storage")
+		log.Printf("SWIFT:Using Azure Table Storage")
 		if len(azureAccountName) == 0 || len(azureAccountKey) == 0 {
 			panic(errors.New("Either the AZURE_STORAGE_ACCOUNT or " +
 				"AZURE_STORAGE_ACCESS_KEY environment variable is not set"))
@@ -82,7 +82,7 @@ func NewStore(swiftConfig Configuration) []Store {
 		swiftStores = append(swiftStores, swiftStore)
 	}
 	if len(gcpProject) > 0 {
-		log.Printf("SWIFT: Using Google Firebase")
+		log.Printf("SWIFT:Using Google Firebase")
 		swiftStore, err := NewFirebase(gcpProject)
 		if err != nil {
 			panic(err)
@@ -90,7 +90,7 @@ func NewStore(swiftConfig Configuration) []Store {
 		swiftStores = append(swiftStores, swiftStore)
 	}
 	if len(swiftNodes) > 0 {
-		log.Printf("SWIFT: Using local storage")
+		log.Printf("SWIFT:Using local storage")
 		swiftStore, err := NewLocalStore(swiftNodes)
 		if err != nil {
 			panic(err)
@@ -98,7 +98,7 @@ func NewStore(swiftConfig Configuration) []Store {
 		swiftStores = append(swiftStores, swiftStore)
 	}
 	if len(awsEnabled) > 0 {
-		log.Printf("SWIFT: Using AWS DynamoDB")
+		log.Printf("SWIFT:Using AWS DynamoDB")
 		swiftStore, err := NewAWS()
 		if err != nil {
 			panic(err)
@@ -107,15 +107,24 @@ func NewStore(swiftConfig Configuration) []Store {
 	}
 
 	if len(swiftStores) == 0 {
-		panic(fmt.Errorf("SWIFT: no store has been configured. " +
+		panic(fmt.Errorf("SWIFT:no store has been configured.\r\n" +
 			"Provide details for store by specifying one or more sets of " +
-			"environment variables\r\n: " +
+			"environment variables:\r\n" +
 			"(1) Azure Storage account details 'AZURE_STORAGE_ACCOUNT' & 'AZURE_STORAGE_ACCESS_KEY'\r\n" +
-			"(2) GCP project in 'GCP_PROJECT' \r\n" +
-			"(3) Local storage file paths in 'SWIFT_SECRETS_FILE' & 'SWIFT_NODES_FILE'\r\n" +
-			"(4) AWS Dynamo DB by setting 'AWS_SDK_LOAD_CONFIG' to true\r\n" +
+			"(2) GCP project in 'GCP_PROJECT'\r\n" +
+			"(3) Local storage file paths in 'SWIFT_FILE'\r\n" +
+			"(4) AWS Dynamo DB by setting 'AWS_ENABLED' to true\r\n" +
 			"Refer to https://github.com/SWAN-community/swift-go/blob/main/README.md " +
 			"for specifics on setting up each storage solution"))
+	} else if swiftConfig.Debug {
+
+		// If in debug more log the nodes at startup.
+		for _, s := range swiftStores {
+			s.iterateNodes(func(n *node, s interface{}) error {
+				log.Println(fmt.Sprintf("SWIFT:\t%s", n.domain))
+				return nil
+			}, nil)
+		}
 	}
 
 	return swiftStores

@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 )
@@ -50,28 +51,70 @@ func (nv *NodeViews) NodeViewItems() []NodeView {
 // template.
 func HandlerNodes(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		var nvs NodeViews
-
-		ns, err := s.store.getAllNodes()
+		nvs, err := getNodesView(s)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 		}
-
-		for _, n := range ns {
-			nv := NodeView{
-				Network:  n.network,
-				Domain:   n.domain,
-				Created:  n.created,
-				Starts:   n.starts,
-				Expires:  n.expires,
-				Role:     n.role,
-				Accessed: n.accessed,
-				Alive:    n.alive,
-			}
-			nvs.Nodes = append(nvs.Nodes, nv)
-		}
-
 		sendHTMLTemplate(s, w, swiftNodesTemplate, &nvs)
 	}
+}
+
+// HandlerNodesJSON is a handler that returns a list of all the alive nodes
+// which is then used to serialize to JSON.
+func HandlerNodesJSON(s *Services) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		j, err := getJSON(s)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusInternalServerError)
+			return
+		}
+		sendResponse(s, w, "application/json", j)
+	}
+}
+
+func getJSON(s *Services) ([]byte, error) {
+
+	// Get all the nodes.
+	ns, err := s.store.getAllNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	// Turn them into a map.
+	nis := make(map[string]*node)
+	for _, n := range ns {
+		if n.alive {
+			nis[n.domain] = n
+		}
+	}
+
+	// Turn the map into a JSON string.
+	j, err := json.Marshal(nis)
+	if err != nil {
+		return nil, err
+	}
+
+	return j, nil
+}
+
+func getNodesView(s *Services) (*NodeViews, error) {
+	var nvs NodeViews
+	ns, err := s.store.getAllNodes()
+	if err != nil {
+		return nil, err
+	}
+	for _, n := range ns {
+		nv := NodeView{
+			Network:  n.network,
+			Domain:   n.domain,
+			Created:  n.created,
+			Starts:   n.starts,
+			Expires:  n.expires,
+			Role:     n.role,
+			Accessed: n.accessed,
+			Alive:    n.alive,
+		}
+		nvs.Nodes = append(nvs.Nodes, nv)
+	}
+	return &nvs, nil
 }

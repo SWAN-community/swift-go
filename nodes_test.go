@@ -126,6 +126,7 @@ func createNodes() (*nodes, error) {
 			"test",
 			fmt.Sprintf("node%d", i),
 			time.Now().UTC(),
+			time.Now().UTC(),
 			time.Now().UTC().AddDate(1, 0, 0),
 			roleStorage,
 			s.key)

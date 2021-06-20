@@ -115,10 +115,6 @@ func (l *Local) iterateNodes(
 
 // SetNode inserts or updates the node.
 func (l *Local) setNode(n *node) error {
-	// err := l.setNodeSecrets(n)
-	// if err != nil {
-	// 	return err
-	// }
 	nis := make(map[string]*node)
 
 	// Fetch all the records from the nodes file.

@@ -41,6 +41,7 @@ func AddHandlers(
 
 	if services.config.Debug {
 		http.HandleFunc("/swift/nodes", HandlerNodes(services))
+		http.HandleFunc("/swift/api/v1/nodes", HandlerNodesJSON(services))
 	}
 }
 

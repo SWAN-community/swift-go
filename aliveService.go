@@ -26,6 +26,9 @@ import (
 	"time"
 )
 
+// The size of the nounce used for the keep alive service.
+const nounceSize = 32
+
 // aliveService type is service which polls known nodes to determine if they are
 // 'alive' and responding to requests. Only nodes that have not been accessed
 // for a period of time greater than the polling interval will be polled. On a
@@ -69,20 +72,26 @@ func newAliveService(c Configuration, s storageManager) *aliveService {
 // quickly.
 func (a *aliveService) aliveLoop() {
 	t := &http.Transport{
-		DisableKeepAlives:  true,
-		DisableCompression: true,
-		ForceAttemptHTTP2:  false,
-	}
+		DisableKeepAlives:     true,
+		DisableCompression:    true,
+		ForceAttemptHTTP2:     false,
+		MaxConnsPerHost:       1,
+		MaxIdleConnsPerHost:   1,
+		MaxIdleConns:          len(a.store.nodes),
+		IdleConnTimeout:       time.Second,
+		ResponseHeaderTimeout: time.Second,
+		ExpectContinueTimeout: time.Second}
 	c := &http.Client{
 		Timeout:   a.pollingInterval,
 		Transport: t}
-	defer c.CloseIdleConnections()
+
 	a.ticker = time.NewTicker(a.pollingInterval)
 	for _ = range a.ticker.C {
 		a.ticker.Stop()
 		for _, n := range a.store.nodes {
 			a.pollNode(n, c)
 		}
+		c.CloseIdleConnections()
 		a.ticker.Reset(a.pollingInterval)
 	}
 }
@@ -183,11 +192,10 @@ func (a *aliveService) callAlive(
 
 // nonce returns a new nonce generated using crpyto/rand
 func nonce() ([]byte, error) {
-	b := make([]byte, 32)
+	b := make([]byte, nounceSize)
 	_, err := rand.Read(b)
 	if err != nil {
 		return nil, err
 	}
-
 	return b, nil
 }
