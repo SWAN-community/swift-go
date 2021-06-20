@@ -17,6 +17,7 @@
 package swift
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -45,7 +46,21 @@ func handlerAlive(s *Services) http.HandlerFunc {
 			return
 		}
 
-		// Return the decrypted information.
-		sendResponse(s, w, "application/octet-stream", decrypted)
+		// Return the decrypted information uncompressed.
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		l, err := w.Write(decrypted)
+		if err != nil {
+			returnAPIError(s, w, err, http.StatusInternalServerError)
+			return
+		}
+		if l != len(decrypted) {
+			returnAPIError(
+				s,
+				w,
+				fmt.Errorf("byte count mismatch"),
+				http.StatusInternalServerError)
+			return
+		}
 	}
 }

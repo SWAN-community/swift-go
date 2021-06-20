@@ -62,10 +62,20 @@ func newAliveService(c Configuration, s storageManager) *aliveService {
 // checkAlive starts a new ticker and stores a reference to it in the
 // aliveService. For each tick, all nodes known by the storageService are
 // polled.
+// The transport is configured to disable keep-alive to avoid exhausting the
+// number of open connections in the environment. Compression is not used
+// because the payload is only 32 bytes. There is no benefit from HTTP 2 so this
+// is not required. There is a short timeout as an alive node will respond
+// quickly.
 func (a *aliveService) aliveLoop() {
-	c := &http.Client{
-		Timeout: a.pollingInterval,
+	t := &http.Transport{
+		DisableKeepAlives:  true,
+		DisableCompression: true,
+		ForceAttemptHTTP2:  false,
 	}
+	c := &http.Client{
+		Timeout:   a.pollingInterval,
+		Transport: t}
 	defer c.CloseIdleConnections()
 	a.ticker = time.NewTicker(a.pollingInterval)
 	for _ = range a.ticker.C {
