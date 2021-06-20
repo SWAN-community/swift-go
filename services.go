@@ -72,8 +72,13 @@ func (s *Services) GetHomeNode(r *http.Request) (*node, error) {
 	return n.getHomeNode(q.Get(xforwarededfor), q.Get(remoteAddr))
 }
 
-func (s *Services) getStorageNode(r *http.Request) (*node, error) {
-	return s.getNodeFromRequest(r.Host, roleStorage)
+// GetAliveNodesCount returns the number of nodes reported as alive currently.
+func (s *Services) GetAliveNodesCount() (uint32, error) {
+	n, err := s.store.getAllActiveNodes()
+	if err != nil {
+		return 0, err
+	}
+	return uint32(len(n)), nil
 }
 
 func (s *Services) getNodeFromRequest(h string, q int) (*node, error) {
