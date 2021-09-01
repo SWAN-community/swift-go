@@ -164,7 +164,7 @@ func (n *node) DecryptAndDecode(d []byte) (*Results, error) {
 		return nil, err
 	}
 	if b == nil {
-		return nil, fmt.Errorf("Could not decrypt byte array")
+		return nil, fmt.Errorf("could not decrypt byte array")
 	}
 
 	// Decode the byte array to become a results array.

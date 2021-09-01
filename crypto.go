@@ -51,7 +51,7 @@ func (x *crypto) decrypt(b []byte) ([]byte, error) {
 	nonceSize := x.gcm.NonceSize()
 	if len(b) < nonceSize {
 		return nil, fmt.Errorf(
-			"Data length '%d' shorter than nonce '%d'",
+			"data length '%d' shorter than nonce '%d'",
 			len(b),
 			nonceSize)
 	}
@@ -110,13 +110,13 @@ func compress(b []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	z.Close()
 	if i != len(b) {
 		return nil, fmt.Errorf(
-			"Byte written '%d' does not match length '%d",
+			"byte written '%d' does not match length '%d",
 			i,
 			len(b))
 	}
-	z.Close()
 	return o.Bytes(), nil
 }
 
@@ -126,5 +126,6 @@ func decompress(b []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer z.Close()
 	return ioutil.ReadAll(z)
 }

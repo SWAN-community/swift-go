@@ -30,17 +30,25 @@ func handlerAlive(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Get the body bytes from the request.
-		body, err := ioutil.ReadAll(r.Body)
+		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return
 		}
+		r.Body.Close()
 
 		// Get the node associated with the request.
 		n := s.store.getNode(r.Host)
+		if n == nil {
+			returnAPIError(
+				s,
+				w,
+				fmt.Errorf("no node for '%s'", r.Host),
+				http.StatusBadRequest)
+		}
 
 		// Decode the body to form the decrypted byte array.
-		decrypted, err := n.Decrypt(body)
+		decrypted, err := n.Decrypt(b)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return
@@ -49,6 +57,7 @@ func handlerAlive(s *Services) http.HandlerFunc {
 		// Return the decrypted information uncompressed.
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Cache-Length", fmt.Sprintf("%d", len(decrypted)))
 		l, err := w.Write(decrypted)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)

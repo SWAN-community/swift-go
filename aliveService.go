@@ -88,11 +88,20 @@ func (a *aliveService) aliveLoop() {
 	a.ticker = time.NewTicker(a.pollingInterval)
 	for _ = range a.ticker.C {
 		a.ticker.Stop()
-		for _, n := range a.store.nodes {
+		a.pollNodes(c)
+		a.ticker.Reset(a.pollingInterval)
+	}
+}
+
+// pollNodes gets the latest copy of all the nodes and polls each one if it's
+// last accessed time is older than the polling interval.
+func (a *aliveService) pollNodes(c *http.Client) {
+	ns, err := a.store.getAllNodes()
+	if err == nil {
+		for _, n := range ns {
 			a.pollNode(n, c)
 		}
 		c.CloseIdleConnections()
-		a.ticker.Reset(a.pollingInterval)
 	}
 }
 
@@ -165,29 +174,30 @@ func (a *aliveService) callAlive(
 	c *http.Client,
 	d []byte) ([]byte, error) {
 
+	// Construct the URL for the alive service endpoint.
 	url := url.URL{
 		Scheme: a.config.Scheme,
 		Host:   n.domain,
 		Path:   "/swift/api/v1/alive",
 	}
 
-	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(d))
+	// Use the client provided to post the byte array.
+	r, err := c.Post(
+		url.String(),
+		"application/octet-stream",
+		bytes.NewBuffer(d))
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := c.Do(req)
+	// Read the response and return it.
+	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Body.Close()
+	r.Body.Close()
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	return b, nil
 }
 
 // nonce returns a new nonce generated using crpyto/rand
