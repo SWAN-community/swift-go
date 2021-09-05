@@ -8,7 +8,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v48.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.11 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
-	github.com/SWAN-community/config-go v0.1.3
+	github.com/SWAN-community/config-go v0.1.4
 	github.com/aws/aws-sdk-go v1.35.28
 	github.com/dnaeon/go-vcr v1.1.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
