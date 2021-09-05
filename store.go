@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 )
 
 const (
@@ -60,44 +59,39 @@ type Store interface {
 
 // NewStore returns a work implementation of the Store interface for the
 // configuration supplied.
-func NewStore(swiftConfig Configuration) []Store {
+func NewStore(c Configuration) []Store {
 	var swiftStores []Store
-
-	azureAccountName, azureAccountKey, gcpProject, swiftNodes, awsEnabled :=
-		os.Getenv("AZURE_STORAGE_ACCOUNT"),
-		os.Getenv("AZURE_STORAGE_ACCESS_KEY"),
-		os.Getenv("GCP_PROJECT"),
-		os.Getenv("SWIFT_FILE"),
-		os.Getenv("AWS_ENABLED")
-	if len(azureAccountName) > 0 || len(azureAccountKey) > 0 {
+	if len(c.AzureStorageAccount) > 0 || len(c.AzureStorageAccessKey) > 0 {
 		log.Printf("SWIFT:Using Azure Table Storage")
-		if len(azureAccountName) == 0 || len(azureAccountKey) == 0 {
-			panic(errors.New("Either the AZURE_STORAGE_ACCOUNT or " +
-				"AZURE_STORAGE_ACCESS_KEY environment variable is not set"))
+		if len(c.AzureStorageAccount) == 0 || len(c.AzureStorageAccessKey) == 0 {
+			panic(errors.New("Both the AzureStorageAccount or " +
+				"AzureStorageAccessKey settings must be present to use Azure"))
 		}
-		swiftStore, err := NewAzure(azureAccountName, azureAccountKey)
+		swiftStore, err := NewAzure(
+			c.AzureStorageAccount,
+			c.AzureStorageAccessKey)
 		if err != nil {
 			panic(err)
 		}
 		swiftStores = append(swiftStores, swiftStore)
 	}
-	if len(gcpProject) > 0 {
+	if len(c.GcpProject) > 0 {
 		log.Printf("SWIFT:Using Google Firebase")
-		swiftStore, err := NewFirebase(gcpProject)
+		swiftStore, err := NewFirebase(c.GcpProject)
 		if err != nil {
 			panic(err)
 		}
 		swiftStores = append(swiftStores, swiftStore)
 	}
-	if len(swiftNodes) > 0 {
+	if len(c.SwiftFile) > 0 {
 		log.Printf("SWIFT:Using local storage")
-		swiftStore, err := NewLocalStore(swiftNodes)
+		swiftStore, err := NewLocalStore(c.SwiftFile)
 		if err != nil {
 			panic(err)
 		}
 		swiftStores = append(swiftStores, swiftStore)
 	}
-	if len(awsEnabled) > 0 {
+	if c.AwsEnabled {
 		log.Printf("SWIFT:Using AWS DynamoDB")
 		swiftStore, err := NewAWS()
 		if err != nil {
@@ -116,7 +110,7 @@ func NewStore(swiftConfig Configuration) []Store {
 			"(4) AWS Dynamo DB by setting 'AWS_ENABLED' to true\r\n" +
 			"Refer to https://github.com/SWAN-community/swift-go/blob/main/README.md " +
 			"for specifics on setting up each storage solution"))
-	} else if swiftConfig.Debug {
+	} else if c.Debug {
 
 		// If in debug more log the nodes at startup.
 		for _, s := range swiftStores {

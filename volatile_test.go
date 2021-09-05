@@ -22,7 +22,7 @@ import (
 )
 
 func newVolatileTest() (*Volatile, error) {
-	v := newVolatile()
+	v := newVolatile("test", false, nil)
 	for i := 1; i <= 10; i++ {
 		_, err := v.testAddStorage(i)
 		if err != nil {
@@ -38,16 +38,18 @@ func (v *Volatile) testAddStorage(index int) (*node, error) {
 		return nil, err
 	}
 	n := node{
-		"network",
-		fmt.Sprintf("test-%d.com", index),
-		0,
-		time.Now(),
-		time.Now(),
-		0,
-		make([]*secret, 1),
-		s,
-		make([]byte, s.crypto.gcm.NonceSize()),
-		true}
+		network:   "network",
+		domain:    fmt.Sprintf("test-%d.com", index),
+		hash:      0,
+		created:   time.Now(),
+		starts:    time.Now(),
+		expires:   time.Now().AddDate(1, 0, 0),
+		role:      0,
+		secrets:   make([]*secret, 1),
+		scrambler: s,
+		nonce:     make([]byte, s.crypto.gcm.NonceSize()),
+		accessed:  time.Now(),
+		alive:     true}
 	x, err := newSecret()
 	if err != nil {
 		return nil, err

@@ -18,7 +18,7 @@ package swift
 
 import "fmt"
 
-// Volatile localstorage implementation for testing
+// Volatile localstorage implementation
 type Volatile struct {
 	name     string
 	readOnly bool

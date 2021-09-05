@@ -22,6 +22,7 @@ import (
 	"testing"
 )
 
+// A test secret of 32 bytes
 var testSecret = []byte("passphrasewhichneedstobe32bytes!")
 
 func TestCryptoGood(t *testing.T) {

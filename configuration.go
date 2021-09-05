@@ -17,52 +17,56 @@
 package swift
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
+
+	"github.com/SWAN-community/config-go"
 )
 
 // Configuration maps to the appsettings.json settings file.
 type Configuration struct {
+	config.Common `mapstructure:",squash"`
+	// If a local file with SWIFT node information is to be used the path to the
+	// file.
+	SwiftFile string `mapstructure:"swiftFile"`
 	// The number of seconds between polling operations for alive checks. This
 	// is supplement to the passive check so if a node has not been accessed for
 	// more than this then it is eligible for polling.
-	AlivePollingSeconds int `json:"alivePollingSeconds"`
+	AlivePollingSeconds int `mapstructure:"alivePollingSeconds"`
 	// The number of seconds from creation of an operation that it is valid for.
 	// Used to prevent repeated processing of the same operation.
-	StorageOperationTimeout int `json:"storageOperationTimeout"`
+	StorageOperationTimeout int `mapstructure:"storageOperationTimeout"`
 	// The number of minutes between refreshes of the storage manager.
-	StorageManagerRefreshMinutes int `json:"storageManagerRefreshMinutes"`
+	StorageManagerRefreshMinutes int `mapstructure:"storageManagerRefreshMinutes"`
 	// The maximum number of Store instances that can be referenced by a storage
 	// manager.
-	MaxStores int `json:"maxStores"`
+	MaxStores int `mapstructure:"maxStores"`
 	// The length of time in seconds values stored in SWIFT nodes can be relied
 	// upon to be current. Used by the home node to determine if it should
 	// consult other nodes in the network before returning it's current values.
-	HomeNodeTimeout int `json:"homeNodeTimeout"`
+	HomeNodeTimeout int `mapstructure:"homeNodeTimeout"`
 	// The default message to display in the user interface if one is not
 	// provided by the requestor of the storage operation.
-	Message string `json:"message"`
+	Message string `mapstructure:"message"`
 	// The title of the web page to use in the user interface if one is not
 	// provided by the requestor of the storage operation.
-	Title string `json:"title"`
+	Title string `mapstructure:"title"`
 	// The background color of the web page to use in the user interface if one
 	// is not provided by the requestor of the storage operation.
-	BackgroundColor string `json:"backgroundColor"`
+	BackgroundColor string `mapstructure:"backgroundColor"`
 	// The message color to use in the user interface if one is not provided by
 	// the requestor of the storage operation.
-	MessageColor string `json:"messageColor"`
+	MessageColor string `mapstructure:"messageColor"`
 	// The progress circle color to use in the user interface if one is not
 	// provided by the requestor of the storage operation.
-	ProgressColor string `json:"progressColor"`
+	ProgressColor string `mapstructure:"progressColor"`
 	// The HTTP scheme to use (HTTP for development and HTTPS for production).
-	Scheme string `json:"scheme"`
+	Scheme string `mapstructure:"scheme"`
 	// The number of nodes to consult when accessing the SWIFT network.
-	NodeCount byte `json:"nodeCount"`
+	NodeCount byte `mapstructure:"nodeCount"`
 	// True to enable debug logging and user interfaces.
-	Debug bool `json:"debug"`
+	Debug bool `mapstructure:"debug"`
 }
 
 // HomeNodeTimeoutDuration the home node timeout as a time.Duration
@@ -79,13 +83,10 @@ func (c *Configuration) StorageOperationTimeoutDuration() time.Duration {
 // NewConfig creates a new instance of configuration from the file provided.
 func NewConfig(file string) Configuration {
 	var c Configuration
-	configFile, err := os.Open(file)
-	defer configFile.Close()
+	err := config.LoadConfig([]string{"."}, file, &c)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	jsonParser := json.NewDecoder(configFile)
-	jsonParser.Decode(&c)
 	return c
 }
 
@@ -126,6 +127,51 @@ func (c *Configuration) Validate() error {
 			log.Printf("SWIFT:ProgressColor: %s\n", c.ProgressColor)
 		} else {
 			err = fmt.Errorf("SWIFT ProgressColor missing in config")
+		}
+	}
+	if err == nil {
+		if c.Scheme != "" {
+			log.Printf("SWIFT:Scheme: %s\n", c.Scheme)
+		} else {
+			err = fmt.Errorf("SWIFT Scheme missing in config")
+		}
+	}
+	if err == nil {
+		if !(c.Scheme == "http" || c.Scheme == "https") {
+			err = fmt.Errorf("SWIFT Scheme invalid (https or http)")
+		}
+	}
+	if err == nil {
+		if c.NodeCount <= 0 {
+			err = fmt.Errorf("SWIFT NodeCount must be greater than 0")
+		} else {
+			log.Printf("SWIFT:NodeCount: %d\n", c.NodeCount)
+		}
+	}
+	if err == nil {
+		if c.StorageOperationTimeout <= 0 {
+			err = fmt.Errorf("SWIFT storageOperationTimeout must be greater than 0")
+		} else {
+			log.Printf("SWIFT:StorageOperationTimeout: %d\n", c.StorageOperationTimeout)
+		}
+	}
+	if err == nil {
+		if c.HomeNodeTimeout <= 0 {
+			err = fmt.Errorf("SWIFT HomeNodeTimeout must be greater than 0")
+		}
+	}
+	if err == nil {
+		if c.AlivePollingSeconds < 0 {
+			err = fmt.Errorf("SWIFT AlivePollingSeconds must 0 or positive")
+		} else {
+			log.Printf("SWIFT:AlivePollingSeconds: %d\n", c.AlivePollingSeconds)
+		}
+	}
+	if err == nil {
+		if c.StorageManagerRefreshMinutes <= 0 {
+			err = fmt.Errorf("SWIFT StorageManagerRefreshMinutes must be greater than 0")
+		} else {
+			log.Printf("SWIFT:StorageManagerRefreshMinutes: %d\n", c.StorageManagerRefreshMinutes)
 		}
 	}
 	return err

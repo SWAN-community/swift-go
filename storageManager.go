@@ -58,8 +58,9 @@ func newStorageManager(c Configuration, sts ...Store) (*storageManager, error) {
 	for i := 0; i < len(sts); i++ {
 		// check the maximum number of stores has not been reached
 		if len(sts) > c.MaxStores {
-			return nil, fmt.Errorf("too many stores have been configured, max is "+
-				"number of stores %d", c.MaxStores)
+			return nil, fmt.Errorf(
+				"too many stores have been configured, max is "+
+					"number of stores %d", c.MaxStores)
 		}
 
 		// get the sharing nodes from this store

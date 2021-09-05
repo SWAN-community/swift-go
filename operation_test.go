@@ -36,7 +36,8 @@ func TestOperation(t *testing.T) {
 	}
 	k := []string{"key"}
 	a := NewAccessSimple(k)
-	s := NewServices(newConfigurationTest(), v, a, r)
+	c := newConfigurationTest()
+	s := NewServices(c, NewStorageService(c, v), a, r)
 	o1 := newOperation(s, nil)
 	b, err := o1.asByteArray()
 	if err != nil {
