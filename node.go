@@ -74,62 +74,89 @@ func newNode(
 	expires time.Time,
 	role int,
 	scrambleKey string) (*node, error) {
-	s, err := newSecretFromKey(scrambleKey, created)
+	scrambler, err := makeScrambler(created, scrambleKey)
 	if err != nil {
 		return nil, err
 	}
 	n := node{
-		network,
-		domain,
-		getHash(domain),
-		created,
-		starts,
-		expires,
-		role,
-		make([]*secret, 0),
-		s,
-		makeNonce(s, []byte(domain)),
-		time.Time{},
-		false}
+		network:   network,
+		domain:    domain,
+		hash:      getHash(domain),
+		created:   created,
+		starts:    starts,
+		expires:   expires,
+		role:      role,
+		secrets:   make([]*secret, 0),
+		scrambler: scrambler,
+		nonce:     makeNonce(scrambler, []byte(domain)),
+		accessed:  time.Time{},
+		alive:     false}
 	return &n, nil
 }
 
-func makeNonce(s *secret, d []byte) []byte {
-	n := make([]byte, s.crypto.gcm.NonceSize())
-	c := 0
-	for i := 0; i < len(n); i++ {
-		n[i] = d[c]
-		c++
-		if c >= len(d) {
-			c = 0
+// makeScrambler If a scramble key is provided then make the scrambler,
+// otherwise return nil to indicate the node will not scramble the table name
+// to form the first fragment of the storage path.
+func makeScrambler(created time.Time, scrambleKey string) (*secret, error) {
+	if scrambleKey != "" {
+		s, err := newSecretFromKey(scrambleKey, created)
+		if err != nil {
+			return nil, err
 		}
+		return s, nil
 	}
-	return n
+	return nil, nil
+}
+
+// makeNonce If a secret is provided then returns nonce for the secret,
+// otherwise an empty array.
+func makeNonce(s *secret, d []byte) []byte {
+	if s != nil {
+		n := make([]byte, s.crypto.gcm.NonceSize())
+		c := 0
+		for i := 0; i < len(n); i++ {
+			n[i] = d[c]
+			c++
+			if c >= len(d) {
+				c = 0
+			}
+		}
+		return n
+	}
+	return []byte{}
 }
 
 func (n *node) isActive() bool {
 	return n.expires.After(time.Now().UTC()) && len(n.secrets) > 0
 }
 
+// unscramble if the node has been configured with a scrambler then the input
+// string should be a base 64 encoded string created by the scramble method
+// previously. If no scrambler is used with the node then the input is the same
+// as the output.
 func (n *node) unscramble(s string) (string, error) {
-	b, err := base64.RawURLEncoding.DecodeString(s)
-	if err != nil {
-		return "", err
+	if n.scrambler != nil {
+		b, err := base64.RawURLEncoding.DecodeString(s)
+		if err != nil {
+			return "", err
+		}
+		d, err := n.scrambler.crypto.decrypt(b)
+		if err != nil {
+			return "", err
+		}
+		return string(d), nil
 	}
-	d, err := n.scrambler.crypto.decrypt(b)
-	if err != nil {
-		return "", err
-	}
-	return string(d), err
+	return s, nil
 }
 
-func (n *node) scrambleByteArray(b []byte) string {
-	return base64.RawURLEncoding.EncodeToString(
-		n.scrambler.crypto.encryptWithNonce(b, n.nonce))
-}
-
+// scramble the input string if there is a scrambler used with the node. If no
+// scrambler is used with the node then the input is the same as the output.
 func (n *node) scramble(s string) string {
-	return n.scrambleByteArray([]byte(s))
+	if n.scrambler != nil {
+		return base64.RawURLEncoding.EncodeToString(
+			n.scrambler.crypto.encryptWithNonce([]byte(s), n.nonce))
+	}
+	return s
 }
 
 func (n *node) encrypt(d []byte) ([]byte, error) {
