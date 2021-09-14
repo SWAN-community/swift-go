@@ -134,7 +134,8 @@ func (a *Azure) setNode(n *node) error {
 	e.Properties[startsFieldName] = n.starts
 	e.Properties[expiresFieldName] = n.expires
 	e.Properties[roleFieldName] = n.role
-	e.Properties[scramblerKeyFieldName] = n.scrambler.key
+	e.Properties[scramblerKeyFieldName] = n.getScramblerKey()
+	e.Properties[cookieDomainFieldName] = n.cookieDomain
 	return e.Insert(storage.FullMetadata, nil)
 }
 
@@ -246,7 +247,8 @@ func (a *Azure) fetchNodes() (map[string]*node, error) {
 			getNodeStartTime(i.Properties, i.TimeStamp),
 			getNodeEndTime(i.Properties),
 			int(i.Properties[roleFieldName].(float64)),
-			i.Properties[scramblerKeyFieldName].(string))
+			i.Properties[scramblerKeyFieldName].(string),
+			i.Properties[cookieDomainFieldName].(string))
 		if err != nil {
 			return nil, err
 		}

@@ -104,12 +104,12 @@ func Create(s *Services, h string, q url.Values) (string, error) {
 	// Get the node associated with the request.
 	a := s.store.getNode(h)
 	if a == nil {
-		return "", fmt.Errorf("Host '%s' is not a SWIFT node", h)
+		return "", fmt.Errorf("host '%s' is not a SWIFT node", h)
 	}
 
 	// If the node is not an access node then return an error.
 	if a.role != roleAccess {
-		return "", fmt.Errorf("Domain '%s' is not an access node", a.domain)
+		return "", fmt.Errorf("domain '%s' is not an access node", a.domain)
 	}
 
 	// Create the operation.
@@ -342,7 +342,9 @@ func setAccessNode(s *Services, o *operation, q *url.Values, a *node) error {
 	return nil
 }
 
-// Set the number of SWIFT nodes that should be used for the operation.
+// Set the number of SWIFT nodes that should be used for the operation. If the
+// requested node count is higher than the total number of nodes available then
+// the count is reduced to the available nodes.
 func setCount(o *operation, q *url.Values, s *Services) error {
 	if q.Get(nodeCount) != "" {
 		c, err := strconv.Atoi(q.Get(nodeCount))
@@ -359,6 +361,9 @@ func setCount(o *operation, q *url.Values, s *Services) error {
 		}
 	} else {
 		o.nodeCount = s.config.NodeCount
+	}
+	if o.nodeCount > (byte)(len(o.network.hash)) {
+		o.nodeCount = (byte)(len(o.network.hash))
 	}
 	return nil
 }

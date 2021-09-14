@@ -48,7 +48,7 @@ func handlerAlive(s *Services) http.HandlerFunc {
 		}
 
 		// Decode the body to form the decrypted byte array.
-		decrypted, err := n.Decrypt(b)
+		decrypted, err := n.decode(b)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return

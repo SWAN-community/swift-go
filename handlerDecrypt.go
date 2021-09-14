@@ -52,7 +52,7 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 		}
 
 		// Decrypt the byte array using the node.
-		d, err := n.Decrypt(in)
+		d, err := n.decode(in)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return

@@ -243,7 +243,7 @@ var registerTemplate = newHTMLTemplate("register", `
 			<td>
 				<p><input type="radio" id="access" name="role" value="0" {{if .ReadOnly}}disabled{{end}} {{if eq .Role 0}}checked{{end}}></p>
 			</td>
-			<td rowspan="2">
+			<td rowspan="3">
 				{{if .DisplayErrors}}
 				<p>{{.RoleError}}</p>
 				{{end}}
@@ -265,6 +265,30 @@ var registerTemplate = newHTMLTemplate("register", `
 				<p><input type="radio" id="share" name="role" value="2" {{if .ReadOnly}}disabled{{end}} {{if eq .Role 2}}checked{{end}}></p>
 			</td>
 		</tr>
+		<tr>
+			<td>
+				<p><label for="secret">Secret</label></p>
+			</td>
+			<td>
+				<p><input type="checkbox" id="secret" name="secret" {{if .ReadOnly}}disabled{{end}} {{if .Secret}}checked{{end}}></p>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<p><label for="scramble">Scramble</label></p>
+			</td>
+			<td>
+				<p><input type="checkbox" id="scramble" name="scramble" {{if .ReadOnly}}disabled{{end}} {{if .Scramble}}checked{{end}}></p>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<p><label for="cookieDomain">Cookie Domain</label></p>
+			</td>
+			<td>
+			<p><input type="text" maxlength="30" id="cookieDomain" name="cookieDomain" value="{{.CookieDomain}}" {{if .ReadOnly}}disabled{{end}}></p>
+			</td>
+		</tr>				
 		<tr>
 			<td colspan="3">
 				{{if .DisplayErrors}}

@@ -33,7 +33,7 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 		// Check caller can access and parse the form variables.
 		if s.getAccessAllowed(w, r) == false {
 			returnAPIError(s, w,
-				errors.New("Not authorized"),
+				errors.New("not authorized"),
 				http.StatusUnauthorized)
 			return
 		}
@@ -53,7 +53,7 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 		}
 
 		// Decrypt and decode the data into a Results.
-		v, err := n.DecryptAndDecode(d)
+		v, err := n.DecodeAsResults(d)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusInternalServerError)
 			return

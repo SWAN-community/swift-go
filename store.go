@@ -31,6 +31,7 @@ const (
 	startsFieldName       = "starts"       // When the node begins operation
 	expiresFieldName      = "expires"      // When the node expires
 	scramblerKeyFieldName = "ScramblerKey" // Used to scramble table and key names
+	cookieDomainFieldName = "CookieDomain" // The domain to use with cookies
 )
 
 // Store interface for persistent data shared across instances operated.

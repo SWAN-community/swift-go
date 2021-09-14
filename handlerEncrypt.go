@@ -51,7 +51,7 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 		}
 
 		// Encrypt the byte array using the node.
-		out, err := n.encrypt(in)
+		out, err := n.encode(in)
 		if err != nil {
 			returnAPIError(s, w, err, http.StatusBadRequest)
 			return

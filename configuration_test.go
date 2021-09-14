@@ -19,7 +19,7 @@ package swift
 import "testing"
 
 func TestLocalConfigurationSettings(t *testing.T) {
-	c := NewConfig("appsettings.test.local")
+	c := NewConfig("appsettings.test.local.json")
 	if c.SwiftFile == "" {
 		t.Error("SWIFT file not set")
 		return
@@ -29,7 +29,7 @@ func TestLocalConfigurationSettings(t *testing.T) {
 func TestLocalConfigurationEnvironment(t *testing.T) {
 	e := "TEST ENV SWIFT FILE"
 	t.Setenv("SWIFT_FILE", e)
-	c := NewConfig("appsettings.test.none")
+	c := NewConfig("appsettings.test.none.json")
 	if c.SwiftFile != e {
 		t.Error("SWIFT file not expected value")
 		return
@@ -37,7 +37,7 @@ func TestLocalConfigurationEnvironment(t *testing.T) {
 }
 
 func TestAwsConfigurationSettings(t *testing.T) {
-	c := NewConfig("appsettings.test.aws")
+	c := NewConfig("appsettings.test.aws.json")
 	if c.AwsEnabled == false {
 		t.Error("AWS Enabled not set")
 		return
@@ -46,7 +46,7 @@ func TestAwsConfigurationSettings(t *testing.T) {
 
 func TestAwsConfigurationEnvironment(t *testing.T) {
 	t.Setenv("AWS_ENABLED", "true")
-	c := NewConfig("appsettings.test.none")
+	c := NewConfig("appsettings.test.none.json")
 	if c.AwsEnabled != true {
 		t.Error("AWS Enabled not expected value")
 		return
@@ -54,7 +54,7 @@ func TestAwsConfigurationEnvironment(t *testing.T) {
 }
 
 func TestGcpConfigurationSettings(t *testing.T) {
-	c := NewConfig("appsettings.test.gcp")
+	c := NewConfig("appsettings.test.gcp.json")
 	if c.GcpProject == "" {
 		t.Error("GCP Project not set")
 		return
@@ -64,7 +64,7 @@ func TestGcpConfigurationSettings(t *testing.T) {
 func TestGcpConfigurationEnvironment(t *testing.T) {
 	e := "PROJECT NAME"
 	t.Setenv("GCP_PROJECT", e)
-	c := NewConfig("appsettings.test.none")
+	c := NewConfig("appsettings.test.none.json")
 	if c.GcpProject != e {
 		t.Error("GCP Project not expected value")
 		return
@@ -72,7 +72,7 @@ func TestGcpConfigurationEnvironment(t *testing.T) {
 }
 
 func TestAzureConfigurationSettings(t *testing.T) {
-	c := NewConfig("appsettings.test.azure")
+	c := NewConfig("appsettings.test.azure.json")
 	if c.AzureStorageAccount == "" || c.AzureStorageAccessKey == "" {
 		t.Error("Azure not set")
 		return
@@ -84,7 +84,7 @@ func TestAzureConfigurationEnvironment(t *testing.T) {
 	ek := "KEY"
 	t.Setenv("AZURE_STORAGE_ACCOUNT", ea)
 	t.Setenv("AZURE_STORAGE_ACCESS_KEY", ek)
-	c := NewConfig("appsettings.test.none")
+	c := NewConfig("appsettings.test.none.json")
 	if c.AzureStorageAccount != ea || c.AzureStorageAccessKey != ek {
 		t.Error("Azure not expected value")
 		return
@@ -92,7 +92,7 @@ func TestAzureConfigurationEnvironment(t *testing.T) {
 }
 
 func TestConfigurationAll(t *testing.T) {
-	c := NewConfig("appsettings.test.all")
+	c := NewConfig("appsettings.test.all.json")
 	assert(t, c.AlivePollingSeconds == 2, "AlivePollingSeconds")
 	assert(t, c.HomeNodeTimeout == 86400, "HomeNodeTimeout")
 	assert(t, c.MaxStores == 100, "MaxStores")

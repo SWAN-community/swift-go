@@ -31,6 +31,9 @@ type Register struct {
 	Starts        time.Time
 	Expires       time.Time
 	Role          int
+	Scramble      bool
+	Secret        bool
+	CookieDomain  string
 	Error         string
 	NetworkError  string
 	ExpiresError  string

@@ -129,7 +129,8 @@ func createNodes() (*nodes, error) {
 			time.Now().UTC(),
 			time.Now().UTC().AddDate(1, 0, 0),
 			roleStorage,
-			s.key)
+			s.key,
+			fmt.Sprintf("node%d", i))
 		if err != nil {
 			return nil, err
 		}

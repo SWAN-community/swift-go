@@ -40,18 +40,19 @@ const (
 
 // node is a SWIFT storage node associated with a network and a domain name.
 type node struct {
-	network   string    // The name of the network the node belongs to
-	domain    string    // The domain name associated with the node
-	hash      uint64    // Number used to relate client IPs to node
-	created   time.Time // The time that the node first came online
-	starts    time.Time // The time that the node will begin operation
-	expires   time.Time // The time that the node will retire from the network
-	role      int       // The role the node has in the network
-	secrets   []*secret // All the secrets associated with the node
-	scrambler *secret   // Secret used to scramble data with fixed nonce
-	nonce     []byte    // Fixed nonce used with the scrambler
-	accessed  time.Time // The time the node was last accessed
-	alive     bool      // True if the node is reachable via a HTTP request
+	network      string    // The name of the network the node belongs to
+	domain       string    // The domain name associated with the node
+	hash         uint64    // Number used to relate client IPs to node
+	created      time.Time // The time that the node first came online
+	starts       time.Time // The time that the node will begin operation
+	expires      time.Time // The time that the node will retire from the network
+	role         int       // The role the node has in the network
+	secrets      []*secret // All the secrets associated with the node
+	scrambler    *secret   // Secret used to scramble data with fixed nonce
+	nonce        []byte    // Fixed nonce used with the scrambler
+	accessed     time.Time // The time the node was last accessed
+	alive        bool      // True if the node is reachable via a HTTP request
+	cookieDomain string    // The domain to use for cookies
 }
 
 // Domain returns the internet domain associated with the Node.
@@ -66,6 +67,16 @@ func getHash(s string) uint64 {
 	return rand.New(rand.NewSource(int64(h.Sum64()))).Uint64()
 }
 
+func (n *node) getScramblerKey() string {
+	if n.scrambler != nil {
+		return n.scrambler.key
+	}
+	return ""
+}
+
+// supportsCrypto returns true if the node can encrypt and decrypt data.
+func (n *node) supportsCrypto() bool { return len(n.secrets) > 0 }
+
 func newNode(
 	network string,
 	domain string,
@@ -73,24 +84,26 @@ func newNode(
 	starts time.Time,
 	expires time.Time,
 	role int,
-	scrambleKey string) (*node, error) {
+	scrambleKey string,
+	cookieDomain string) (*node, error) {
 	scrambler, err := makeScrambler(created, scrambleKey)
 	if err != nil {
 		return nil, err
 	}
 	n := node{
-		network:   network,
-		domain:    domain,
-		hash:      getHash(domain),
-		created:   created,
-		starts:    starts,
-		expires:   expires,
-		role:      role,
-		secrets:   make([]*secret, 0),
-		scrambler: scrambler,
-		nonce:     makeNonce(scrambler, []byte(domain)),
-		accessed:  time.Time{},
-		alive:     false}
+		network:      network,
+		domain:       domain,
+		hash:         getHash(domain),
+		created:      created,
+		starts:       starts,
+		expires:      expires,
+		role:         role,
+		secrets:      make([]*secret, 0),
+		scrambler:    scrambler,
+		nonce:        makeNonce(scrambler, []byte(domain)),
+		accessed:     time.Time{},
+		alive:        false,
+		cookieDomain: cookieDomain}
 	return &n, nil
 }
 
@@ -126,8 +139,9 @@ func makeNonce(s *secret, d []byte) []byte {
 	return []byte{}
 }
 
+// isActive returns true if the node has not expired.
 func (n *node) isActive() bool {
-	return n.expires.After(time.Now().UTC()) && len(n.secrets) > 0
+	return n.expires.After(time.Now().UTC())
 }
 
 // unscramble if the node has been configured with a scrambler then the input
@@ -159,34 +173,72 @@ func (n *node) scramble(s string) string {
 	return s
 }
 
+// encrypt the byte array with the most recent secret that the now has. Returns
+// an error if no secrets are available or the encryption fails.
 func (n *node) encrypt(d []byte) ([]byte, error) {
 	s, err := n.getSecret()
 	if err != nil {
 		return nil, err
 	}
-	return s.crypto.compressAndEncrypt(d)
+	return s.crypto.encrypt(d)
 }
 
-// Decrypt takes the byte array and decrypts the results ready to be used by the
-// swift.DecodeResults method.
-// d encrypted byte array
-func (n *node) Decrypt(d []byte) ([]byte, error) {
-	var err error
+// decrypt the byte array b using the secrets available to the node returning
+// the decrypted byte array.
+//
+// b encrypted byte array
+func (n *node) decrypt(b []byte) ([]byte, error) {
 	for _, s := range n.secrets {
-		b, err := s.crypto.decryptAndDecompress(d)
-		if err == nil {
-			return b, nil
+		d, err := s.crypto.decrypt(b)
+		if err != nil {
+			return nil, err
+		}
+		if d != nil {
+			return d, nil
 		}
 	}
-	return nil, err
+	return nil, fmt.Errorf("no secrets available to decrypt byte array")
 }
 
-// DecryptAndDecode takes the byte array, decrypts it and decodes it into a Results
-// structure checking that the time stamp is valid.
-func (n *node) DecryptAndDecode(d []byte) (*Results, error) {
+// encode takes the byte array, compresses it and if there are secrets for the
+// node encrypts it ready to be used with HTTP responses.
+//
+// b byte array to encode
+func (n *node) encode(b []byte) ([]byte, error) {
+	e, err := compress(b)
+	if err != nil {
+		return nil, err
+	}
+	if n.supportsCrypto() {
+		e, err = n.encrypt(e)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return e, nil
+}
+
+// decode decrypts the byte array b if the node supports crypto and then
+// decompresses the result before returning it.
+//
+// b byte array to be decoded.
+func (n *node) decode(b []byte) ([]byte, error) {
+	var err error
+	if n.supportsCrypto() {
+		b, err = n.decrypt(b)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return decompress(b)
+}
+
+// DecodeAsResults takes the byte array, decodes it into a Results structure
+// checking that the time stamp is valid.
+func (n *node) DecodeAsResults(d []byte) (*Results, error) {
 
 	// Decrypt the byte array using the node.
-	b, err := n.Decrypt(d)
+	b, err := n.decode(d)
 	if err != nil {
 		return nil, err
 	}
@@ -207,14 +259,15 @@ func (n *node) DecryptAndDecode(d []byte) (*Results, error) {
 // the node struct. This is achieved by converting a node to a map.
 func (n *node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"network":   n.network,
-		"domain":    n.domain,
-		"created":   n.created,
-		"starts":    n.starts,
-		"expires":   n.expires,
-		"role":      n.role,
-		"secrets":   n.secrets,
-		"scrambler": n.scrambler.key,
+		"network":      n.network,
+		"domain":       n.domain,
+		"created":      n.created,
+		"starts":       n.starts,
+		"expires":      n.expires,
+		"role":         n.role,
+		"secrets":      n.secrets,
+		"scrambler":    n.getScramblerKey(),
+		"cookieDomain": n.cookieDomain,
 	})
 }
 
@@ -254,6 +307,7 @@ func (n *node) UnmarshalJSON(b []byte) error {
 		expires,
 		role,
 		d["scrambler"].(string),
+		d["cookieDomain"].(string),
 	)
 	secrets := d["secrets"].([]interface{})
 
@@ -288,7 +342,7 @@ func (n *node) getValueFromCookie(c *http.Cookie) (*pair, error) {
 	if err != nil {
 		return nil, err
 	}
-	d, err := n.Decrypt(v)
+	d, err := n.decode(v)
 	if err != nil {
 		return nil, err
 	}
@@ -315,9 +369,6 @@ func (n *node) addSecret(secret *secret) {
 }
 
 func (n *node) getSecret() (*secret, error) {
-	if n == nil {
-		fmt.Println("Null node")
-	}
 	if len(n.secrets) > 0 {
 		return n.secrets[0], nil
 	}

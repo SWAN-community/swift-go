@@ -174,7 +174,7 @@ func newOperationFromString(s *Services, n *node, v string) (*operation, error) 
 	if err != nil {
 		return nil, err
 	}
-	d, err := n.Decrypt(b)
+	d, err := n.decode(b)
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +317,7 @@ func (o *operation) setValueInCookie(
 	r *http.Request,
 	p *pair) error {
 	var b bytes.Buffer
+	var v []byte
 	err := writeTime(&b, time.Now().UTC())
 	if err != nil {
 		return err
@@ -328,7 +329,7 @@ func (o *operation) setValueInCookie(
 	if b.Len() == 0 {
 		return nil
 	}
-	v, err := o.thisNode.encrypt(b.Bytes())
+	v, err = o.thisNode.encode(b.Bytes())
 	if err != nil {
 		return err
 	}
@@ -341,7 +342,7 @@ func (o *operation) setValueInCookie(
 	}
 	cookie := http.Cookie{
 		Name:     o.thisNode.scramble(p.key),
-		Domain:   getDomain(r.Host),
+		Domain:   o.getCookieDomain(),
 		Value:    base64.StdEncoding.EncodeToString(v),
 		Path:     fmt.Sprintf("/%s", o.thisNode.scramble(o.table)),
 		SameSite: ss,
@@ -352,8 +353,14 @@ func (o *operation) setValueInCookie(
 	return nil
 }
 
-func getDomain(h string) string {
-	s := strings.Split(h, ":")
+// getCookieDomain returns the domain to be used when setting the cookie in the
+// response.
+func (o *operation) getCookieDomain() string {
+	d := o.request.Host
+	if o.thisNode.cookieDomain != "" {
+		d = o.thisNode.cookieDomain
+	}
+	s := strings.Split(d, ":")
 	return s[0]
 }
 

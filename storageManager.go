@@ -296,7 +296,7 @@ func callShare(n *node, scheme string) ([]byte, error) {
 		return nil, err
 	}
 
-	b, err := n.Decrypt(body)
+	b, err := n.decode(body)
 	if err != nil {
 		return nil, err
 	}

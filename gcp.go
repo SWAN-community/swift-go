@@ -130,7 +130,8 @@ func (f *Firebase) setNode(n *node) error {
 		n.starts,
 		n.expires.Unix(),
 		n.role,
-		n.scrambler.key}
+		n.getScramblerKey(),
+		n.cookieDomain}
 	_, err2 := f.client.Collection(nodesTableName).Doc(n.domain).Set(ctx, item)
 	return err2
 }
@@ -227,7 +228,8 @@ func (f *Firebase) fetchNodes() (map[string]*node, error) {
 			item.Starts,
 			time.Unix(item.Expires, 0).UTC(),
 			item.Role,
-			item.ScramblerKey)
+			item.ScramblerKey,
+			item.CookieDomain)
 		if err != nil {
 			return nil, err
 		}

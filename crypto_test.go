@@ -38,12 +38,12 @@ func TestCryptoCorrupt(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	c, err := x.compressAndEncrypt([]byte("corrupt"))
+	c, err := x.encrypt([]byte("corrupt"))
 	if err != nil {
 		t.Fail()
 	}
 	c = append(c, []byte{0}...)
-	_, err = x.decryptAndDecompress(c)
+	_, err = x.decrypt(c)
 	if err == nil {
 		t.Fail()
 	}
@@ -70,9 +70,9 @@ func testCryptoByteArray(i []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, err := x.compressAndEncrypt(i)
+	c, err := x.encrypt(i)
 	if err != nil {
 		return nil, err
 	}
-	return x.decryptAndDecompress(c)
+	return x.decrypt(c)
 }

@@ -337,7 +337,7 @@ func (o *operation) setBrowserWarningCookie(
 	r *http.Request) error {
 	cookie := http.Cookie{
 		Name:     "t",
-		Domain:   getDomain(r.Host),
+		Domain:   o.getCookieDomain(),
 		Value:    "",
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
@@ -416,7 +416,7 @@ func (o *operation) asURLParameter() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	e, err := o.nextNode.encrypt(b)
+	e, err := o.nextNode.encode(b)
 	if err != nil {
 		return "", err
 	}

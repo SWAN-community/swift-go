@@ -17,14 +17,11 @@
 package swift
 
 import (
-	"bytes"
-	"compress/zlib"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
 )
 
 // crypto structure containing AES ciphers.
@@ -32,7 +29,7 @@ type crypto struct {
 	gcm cipher.AEAD
 }
 
-// NewCrypto creates a new instance of the security structure used to encrypt
+// newCrypto creates a new instance of the security structure used to encrypt
 // and decrypt data using rotating shared secret keys.
 func newCrypto(key []byte) (*crypto, error) {
 	var x crypto
@@ -47,6 +44,9 @@ func newCrypto(key []byte) (*crypto, error) {
 	return &x, nil
 }
 
+// decrypt the byte array b returning the decrypted byte array.
+//
+// b the byte array previous generated via the encrypt method.
 func (x *crypto) decrypt(b []byte) ([]byte, error) {
 	nonceSize := x.gcm.NonceSize()
 	if len(b) < nonceSize {
@@ -63,14 +63,11 @@ func (x *crypto) decrypt(b []byte) ([]byte, error) {
 	return d, err
 }
 
-func (x *crypto) decryptAndDecompress(b []byte) ([]byte, error) {
-	d, err := x.decrypt(b)
-	if err != nil {
-		return nil, err
-	}
-	return decompress(d)
-}
-
+// encryptWithNonce encrypts the byte array b with the nounce provided n.
+//
+// b the byte array to be encrypted.
+//
+// n the nonce to use for encryption.
 func (x *crypto) encryptWithNonce(b []byte, n []byte) []byte {
 
 	// Seal encrypts and authenticates plaintext, authenticates the
@@ -80,13 +77,10 @@ func (x *crypto) encryptWithNonce(b []byte, n []byte) []byte {
 	return x.gcm.Seal(n, n, b, nil)
 }
 
-func (x *crypto) compressAndEncrypt(b []byte) ([]byte, error) {
-
-	// Compress the data before encrypting it.
-	c, err := compress(b)
-	if err != nil {
-		return nil, err
-	}
+// encrypt the byte array b with random nonce.
+//
+// b the byte array to be encrypted.
+func (x *crypto) encrypt(b []byte) ([]byte, error) {
 
 	// Create nonce with a cryptographically secure random sequence. Nonce
 	// should never be repeated.
@@ -94,38 +88,11 @@ func (x *crypto) compressAndEncrypt(b []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return x.encryptWithNonce(c, n), nil
+	return x.encryptWithNonce(b, n), nil
 }
 
 func randomBytes(l int) ([]byte, error) {
 	r := make([]byte, l)
 	_, err := io.ReadFull(rand.Reader, r)
 	return r, err
-}
-
-func compress(b []byte) ([]byte, error) {
-	var o bytes.Buffer
-	z := zlib.NewWriter(&o)
-	i, err := z.Write(b)
-	if err != nil {
-		return nil, err
-	}
-	z.Close()
-	if i != len(b) {
-		return nil, fmt.Errorf(
-			"byte written '%d' does not match length '%d",
-			i,
-			len(b))
-	}
-	return o.Bytes(), nil
-}
-
-func decompress(b []byte) ([]byte, error) {
-	f := bytes.NewReader(b)
-	z, err := zlib.NewReader(f)
-	if err != nil {
-		return nil, err
-	}
-	defer z.Close()
-	return ioutil.ReadAll(z)
 }

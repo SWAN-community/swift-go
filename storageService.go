@@ -147,7 +147,8 @@ func (s *storageService) SetNode(d *Register) (bool, bool) {
 		d.Starts,
 		d.Expires,
 		d.Role,
-		scrambler.key)
+		scrambler.key,
+		d.Domain)
 	if err != nil {
 		d.Error = err.Error()
 		return false, isUpdate

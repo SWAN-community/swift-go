@@ -131,7 +131,7 @@ func (a *aliveService) pollNode(n *node, c *http.Client) {
 		}
 
 		// encrypt the nonce using the target node's shared secret
-		b1, err := n.encrypt(nonce)
+		b1, err := n.encode(nonce)
 		if err != nil {
 			if a.config.Debug {
 				log.Printf("SWIFT: could not encrypt nonce using node's "+

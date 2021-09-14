@@ -40,6 +40,9 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		d.Network = ""
 		d.Expires = time.Now().UTC().AddDate(0, 3, 0)
 		d.Role = roleStorage
+		d.Secret = true
+		d.Scramble = true
+		d.CookieDomain = r.Host
 
 		// Check that the domain has not already been registered.
 		n := s.store.getNode(r.Host)
@@ -96,6 +99,17 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 			}
 		}
 
+		// Get the secrets, scramble and cookie domain.
+		if r.FormValue("cookieDomain") != "" {
+			d.CookieDomain = r.FormValue("cookieDomain")
+		}
+		d.Secret = r.FormValue("secret") == "true" ||
+			r.FormValue("secret") == "yes" ||
+			r.FormValue("secret") == "1"
+		d.Scramble = r.FormValue("scramble") == "true" ||
+			r.FormValue("scramble") == "yes" ||
+			r.FormValue("scramble") == "1"
+
 		// If the form data is valid then store the new node.
 		if d.ExpiresError == "" &&
 			d.RoleError == "" &&
@@ -111,10 +125,14 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 func storeNode(s *Services, d *Register) {
 
 	// Create a new scrambler for this new node.
-	scrambler, err := newSecret()
-	if err != nil {
-		d.Error = err.Error()
-		return
+	scramblerKey := ""
+	if d.Scramble {
+		scrambler, err := newSecret()
+		if err != nil {
+			d.Error = err.Error()
+			return
+		}
+		scramblerKey = scrambler.key
 	}
 
 	// Create the new node ready to have it's secret added and stored.
@@ -125,19 +143,24 @@ func storeNode(s *Services, d *Register) {
 		d.Starts.UTC(),
 		d.Expires,
 		d.Role,
-		scrambler.key)
+		scramblerKey,
+		d.CookieDomain)
 	if err != nil {
 		d.Error = err.Error()
 		return
 	}
 
-	// Add the first secret to the node.
-	x, err := newSecret()
-	if err != nil {
-		d.Error = err.Error()
-		return
+	// Add the first secret to the node if secrets are to be used.
+	if d.Secret {
+		x, err := newSecret()
+		if err != nil {
+			d.Error = err.Error()
+			return
+		}
+		n.addSecret(x)
+	} else {
+		n.secrets = []*secret{}
 	}
-	n.addSecret(x)
 
 	// Store the node and it successful mark the registration process as
 	// complete.

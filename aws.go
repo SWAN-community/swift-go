@@ -46,6 +46,7 @@ type NodeItem struct {
 	Expires      int64     `json:"expires"` // The time that the node will retire from the network
 	Role         int       // The role the node has in the network
 	ScramblerKey string    // Secret used to scramble data with fixed nonce
+	CookieDomain string    // The domain to use with cookies
 }
 
 // SecretItem is the dynamodb table item representation of a secret
@@ -248,6 +249,10 @@ func (a *AWS) createSecretsTable() (*dynamodb.CreateTableOutput, error) {
 				AttributeName: aws.String(expiresFieldName),
 				AttributeType: aws.String("N"),
 			},
+			{
+				AttributeName: aws.String(cookieDomainFieldName),
+				AttributeType: aws.String("S"),
+			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{
@@ -359,7 +364,8 @@ func (a *AWS) setNode(n *node) error {
 		n.starts,
 		n.expires.Unix(),
 		n.role,
-		n.scrambler.key}
+		n.getScramblerKey(),
+		n.cookieDomain}
 
 	av, err := dynamodbattribute.MarshalMap(item)
 	if err != nil {
@@ -456,7 +462,8 @@ func (a *AWS) fetchNodes() (map[string]*node, error) {
 			ni.Starts,
 			time.Unix(ni.Expires, 0).UTC(),
 			ni.Role,
-			ni.ScramblerKey)
+			ni.ScramblerKey,
+			ni.CookieDomain)
 		if err != nil {
 			return nil, err
 		}
