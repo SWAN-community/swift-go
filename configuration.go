@@ -26,7 +26,7 @@ import (
 
 // Configuration maps to the appsettings.json settings file.
 type Configuration struct {
-	config.Common `mapstructure:",squash"`
+	config.Base `mapstructure:",squash"`
 	// If a local file with SWIFT node information is to be used the path to the
 	// file.
 	SwiftFile string `mapstructure:"swiftFile"`

@@ -16,3 +16,7 @@ require (
 	google.golang.org/api v0.44.0
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 )
+
+replace (
+	github.com/SWAN-community/config-go => ../config
+)
