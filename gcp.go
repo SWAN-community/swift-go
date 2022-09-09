@@ -32,7 +32,7 @@ type Firebase struct {
 	name      string
 	timestamp time.Time         // The last time the maps were refreshed
 	client    *firestore.Client // Firebase app
-	common
+	base
 }
 
 // NewFirebase creates a new instance of the Firebase structure
@@ -67,7 +67,7 @@ func (f *Firebase) getReadOnly() bool {
 }
 
 func (f *Firebase) getNode(domain string) (*node, error) {
-	n, err := f.common.getNode(domain)
+	n, err := f.base.getNode(domain)
 	if err != nil {
 		return nil, err
 	}
@@ -76,13 +76,13 @@ func (f *Firebase) getNode(domain string) (*node, error) {
 		if err != nil {
 			return nil, err
 		}
-		n, err = f.common.getNode(domain)
+		n, err = f.base.getNode(domain)
 	}
 	return n, err
 }
 
 func (f *Firebase) getNodes(network string) (*nodes, error) {
-	ns, err := f.common.getNodes(network)
+	ns, err := f.base.getNodes(network)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (f *Firebase) getNodes(network string) (*nodes, error) {
 		if err != nil {
 			return nil, err
 		}
-		ns, err = f.common.getNodes(network)
+		ns, err = f.base.getNodes(network)
 	}
 	return ns, err
 }
@@ -102,7 +102,7 @@ func (f *Firebase) getAllNodes() ([]*node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return f.common.getAllNodes()
+	return f.base.getAllNodes()
 }
 
 func (f *Firebase) iterateNodes(

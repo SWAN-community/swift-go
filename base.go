@@ -21,15 +21,15 @@ import (
 	"sync"
 )
 
-// common is a partial implementation of sws.Store for use with other more
+// base is a partial implementation of sws.Store for use with other more
 // complex implementations, and the test methods.
-type common struct {
+type base struct {
 	nodes    map[string]*node  // Map of domain names to nodes
 	networks map[string]*nodes // Map of network names to nodes
 	mutex    *sync.Mutex       // mutual-exclusion lock used for refresh
 }
 
-func (c *common) init(ns []*node) {
+func (c *base) init(ns []*node) {
 	c.nodes = make(map[string]*node)
 	c.networks = make(map[string]*nodes)
 	c.mutex = &sync.Mutex{}
@@ -53,7 +53,7 @@ func (c *common) init(ns []*node) {
 
 // GetAccessNode returns an access node for the network, or null if there is no
 // access node available.
-func (c *common) GetAccessNode(network string) (string, error) {
+func (c *base) GetAccessNode(network string) (string, error) {
 	ns, err := c.getNodes(network)
 	if err != nil {
 		return "", err
@@ -72,16 +72,16 @@ func (c *common) GetAccessNode(network string) (string, error) {
 
 // getNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
-func (c *common) getNode(domain string) (*node, error) {
+func (c *base) getNode(domain string) (*node, error) {
 	return c.nodes[domain], nil
 }
 
 // getNodes returns all the nodes associated with a network.
-func (c *common) getNodes(network string) (*nodes, error) {
+func (c *base) getNodes(network string) (*nodes, error) {
 	return c.networks[network], nil
 }
 
-func (c *common) getAllNodes() ([]*node, error) {
+func (c *base) getAllNodes() ([]*node, error) {
 	var ns []*node
 
 	for _, n := range c.nodes {
@@ -92,7 +92,7 @@ func (c *common) getAllNodes() ([]*node, error) {
 }
 
 // getSharingNodes returns all the nodes with the role share for all networks.
-func (c *common) getSharingNodes() []*node {
+func (c *base) getSharingNodes() []*node {
 	var n []*node
 	for _, v := range c.nodes {
 		if v.role == roleShare {

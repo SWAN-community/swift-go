@@ -27,6 +27,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 type operation struct {
@@ -318,7 +320,7 @@ func (o *operation) setValueInCookie(
 	p *pair) error {
 	var b bytes.Buffer
 	var v []byte
-	err := writeTime(&b, time.Now().UTC())
+	err := common.WriteTime(&b, time.Now().UTC())
 	if err != nil {
 		return err
 	}
@@ -407,15 +409,15 @@ func (o *operation) resolvePairs() ([]*pair, error) {
 func (o *operation) asByteArray() ([]byte, error) {
 	var b bytes.Buffer
 	var err error
-	err = writeTime(&b, o.timeStamp)
+	err = common.WriteTime(&b, o.timeStamp)
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, o.returnURL)
+	err = common.WriteString(&b, o.returnURL)
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, o.accessNode)
+	err = common.WriteString(&b, o.accessNode)
 	if err != nil {
 		return nil, err
 	}
@@ -423,27 +425,27 @@ func (o *operation) asByteArray() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeByte(&b, o.nodesVisited)
+	err = common.WriteByte(&b, o.nodesVisited)
 	if err != nil {
 		return nil, err
 	}
-	err = writeByte(&b, o.nodeCount)
+	err = common.WriteByte(&b, o.nodeCount)
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, o.prevNode)
+	err = common.WriteString(&b, o.prevNode)
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, o.homeNode)
+	err = common.WriteString(&b, o.homeNode)
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, strings.Join(o.state, resultSeparator))
+	err = common.WriteString(&b, strings.Join(o.state, resultSeparator))
 	if err != nil {
 		return nil, err
 	}
-	err = writeByte(&b, byte(len(o.resolved)))
+	err = common.WriteByte(&b, byte(len(o.resolved)))
 	if err != nil {
 		return nil, err
 	}
@@ -462,15 +464,15 @@ func (o *operation) setFromByteArray(d []byte) error {
 		return errors.New("Byte array empty")
 	}
 	b := bytes.NewBuffer(d)
-	o.timeStamp, err = readTime(b)
+	o.timeStamp, err = common.ReadTime(b)
 	if err != nil {
 		return err
 	}
-	o.returnURL, err = readString(b)
+	o.returnURL, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	o.accessNode, err = readString(b)
+	o.accessNode, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
@@ -478,28 +480,28 @@ func (o *operation) setFromByteArray(d []byte) error {
 	if err != nil {
 		return err
 	}
-	o.nodesVisited, err = readByte(b)
+	o.nodesVisited, err = common.ReadByte(b)
 	if err != nil {
 		return err
 	}
-	o.nodeCount, err = readByte(b)
+	o.nodeCount, err = common.ReadByte(b)
 	if err != nil {
 		return err
 	}
-	o.prevNode, err = readString(b)
+	o.prevNode, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	o.homeNode, err = readString(b)
+	o.homeNode, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	s, err := readString(b)
+	s, err := common.ReadString(b)
 	if err != nil {
 		return err
 	}
 	o.state = strings.Split(s, resultSeparator)
-	c, err := readByte(b)
+	c, err := common.ReadByte(b)
 	if err != nil {
 		return err
 	}

@@ -31,7 +31,7 @@ type Local struct {
 	name      string    // The name of the store.
 	timestamp time.Time // The last time the maps were refreshed
 	nodesFile string    // Reference to the node table
-	common
+	base
 }
 
 // NewLocalStore creates a new instance of Local and configures the path for
@@ -61,7 +61,7 @@ func (l *Local) getReadOnly() bool {
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
 func (l *Local) getNode(domain string) (*node, error) {
-	n, err := l.common.getNode(domain)
+	n, err := l.base.getNode(domain)
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +70,14 @@ func (l *Local) getNode(domain string) (*node, error) {
 		if err != nil {
 			return nil, err
 		}
-		n, err = l.common.getNode(domain)
+		n, err = l.base.getNode(domain)
 	}
 	return n, err
 }
 
 // GetNodes returns all the nodes associated with a network.
 func (l *Local) getNodes(network string) (*nodes, error) {
-	ns, err := l.common.getNodes(network)
+	ns, err := l.base.getNodes(network)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (l *Local) getAllNodes() ([]*node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return l.common.getAllNodes()
+	return l.base.getAllNodes()
 }
 
 // iterateNodes calls the callback function for each node

@@ -16,7 +16,11 @@
 
 package swift
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/SWAN-community/common-go"
+)
 
 // Constants for the bits in operation.flags where the constant name corresponds
 // to the public method of operation.
@@ -152,27 +156,27 @@ func (h *HTML) hasBit(pos uint8) bool {
 
 func (h *HTML) write(b *bytes.Buffer) error {
 	var err error
-	err = writeString(b, h.Title)
+	err = common.WriteString(b, h.Title)
 	if err != nil {
 		return err
 	}
-	err = writeString(b, h.Message)
+	err = common.WriteString(b, h.Message)
 	if err != nil {
 		return err
 	}
-	err = writeString(b, h.BackgroundColor)
+	err = common.WriteString(b, h.BackgroundColor)
 	if err != nil {
 		return err
 	}
-	err = writeString(b, h.MessageColor)
+	err = common.WriteString(b, h.MessageColor)
 	if err != nil {
 		return err
 	}
-	err = writeString(b, h.ProgressColor)
+	err = common.WriteString(b, h.ProgressColor)
 	if err != nil {
 		return err
 	}
-	err = writeByte(b, h.flags)
+	err = common.WriteByte(b, h.flags)
 	if err != nil {
 		return err
 	}
@@ -181,27 +185,27 @@ func (h *HTML) write(b *bytes.Buffer) error {
 
 func (h *HTML) set(b *bytes.Buffer) error {
 	var err error
-	h.Title, err = readString(b)
+	h.Title, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	h.Message, err = readString(b)
+	h.Message, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	h.BackgroundColor, err = readString(b)
+	h.BackgroundColor, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	h.MessageColor, err = readString(b)
+	h.MessageColor, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	h.ProgressColor, err = readString(b)
+	h.ProgressColor, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	h.flags, err = readByte(b)
+	h.flags, err = common.ReadByte(b)
 	if err != nil {
 		return err
 	}

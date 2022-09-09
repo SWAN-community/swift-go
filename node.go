@@ -27,6 +27,8 @@ import (
 	"net/http"
 	"sort"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // Table used to initialize hash functions.
@@ -350,7 +352,7 @@ func (n *node) getValueFromCookie(c *http.Cookie) (*pair, error) {
 		return nil, fmt.Errorf("value for cookie '%s' zero length", c.Name)
 	}
 	b := bytes.NewBuffer(d)
-	p.cookieWriteTime, err = readTime(b)
+	p.cookieWriteTime, err = common.ReadTime(b)
 	if err != nil {
 		return nil, fmt.Errorf("time for cookie '%s' invalid", c.Name)
 	}

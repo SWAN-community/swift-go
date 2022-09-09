@@ -21,6 +21,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // Character used to separate state elements.
@@ -34,10 +36,10 @@ type Results struct {
 	state   []string  // Optional state information
 }
 
-// Pairs readonly accessor to the results's key value pairs.
+// Pairs common.Readonly accessor to the results's key value pairs.
 func (r *Results) Pairs() []*Pair { return r.pairs }
 
-// State readonly accessor to the results's state array.
+// State common.Readonly accessor to the results's state array.
 func (r *Results) State() []string { return r.state }
 
 // Get returns the result for the key provided, or nil if the key does not
@@ -73,11 +75,11 @@ func DecodeResults(d []byte) (*Results, error) {
 		return nil, errors.New("Byte array empty")
 	}
 	b := bytes.NewBuffer(d)
-	r.expires, err = readTime(b)
+	r.expires, err = common.ReadTime(b)
 	if err != nil {
 		return nil, err
 	}
-	s, err := readString(b)
+	s, err := common.ReadString(b)
 	if err != nil {
 		return nil, err
 	}
@@ -86,24 +88,24 @@ func DecodeResults(d []byte) (*Results, error) {
 	if err != nil {
 		return nil, err
 	}
-	n, err := readByte(b)
+	n, err := common.ReadByte(b)
 	if err != nil {
 		return nil, err
 	}
 	for i := byte(0); i < n; i++ {
-		k, err := readString(b)
+		k, err := common.ReadString(b)
 		if err != nil {
 			return nil, err
 		}
-		c, err := readDate(b)
+		c, err := common.ReadDate(b)
 		if err != nil {
 			return nil, err
 		}
-		e, err := readDate(b)
+		e, err := common.ReadDate(b)
 		if err != nil {
 			return nil, err
 		}
-		v, err := readByteArrayArray(b)
+		v, err := common.ReadByteArrayArray(b)
 		if err != nil {
 			return nil, err
 		}
@@ -115,11 +117,11 @@ func DecodeResults(d []byte) (*Results, error) {
 func encodeResults(r *Results) ([]byte, error) {
 	var b bytes.Buffer
 	var err error
-	err = writeTime(&b, r.expires)
+	err = common.WriteTime(&b, r.expires)
 	if err != nil {
 		return nil, err
 	}
-	err = writeString(&b, strings.Join(r.state, resultSeparator))
+	err = common.WriteString(&b, strings.Join(r.state, resultSeparator))
 	if err != nil {
 		return nil, err
 	}
@@ -127,24 +129,24 @@ func encodeResults(r *Results) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeByte(&b, byte(len(r.pairs)))
+	err = common.WriteByte(&b, byte(len(r.pairs)))
 	if err != nil {
 		return nil, err
 	}
 	for _, e := range r.pairs {
-		err = writeString(&b, e.key)
+		err = common.WriteString(&b, e.key)
 		if err != nil {
 			return nil, err
 		}
-		err = writeDate(&b, e.created)
+		err = common.WriteDate(&b, e.created)
 		if err != nil {
 			return nil, err
 		}
-		err = writeDate(&b, e.expires)
+		err = common.WriteDate(&b, e.expires)
 		if err != nil {
 			return nil, err
 		}
-		err = writeByteArrayArray(&b, e.values)
+		err = common.WriteByteArrayArray(&b, e.values)
 		if err != nil {
 			return nil, err
 		}

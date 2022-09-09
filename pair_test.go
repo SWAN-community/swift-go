@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 func TestPair(t *testing.T) {
@@ -60,6 +62,6 @@ func TestPair(t *testing.T) {
 		fmt.Println(string(b.values[0]))
 		t.Fail()
 	}
-	testCompareDate(t, a.created, b.created)
-	testCompareDate(t, a.expires, b.expires)
+	common.TestCompareDate(t, a.created, b.created)
+	common.TestCompareDate(t, a.expires, b.expires)
 }

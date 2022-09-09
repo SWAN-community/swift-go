@@ -19,6 +19,8 @@ package swift
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/SWAN-community/access-go"
 )
 
 // Services references all the information needed for every method.
@@ -26,7 +28,7 @@ type Services struct {
 	config  Configuration   // Configuration used by the server.
 	store   storageService  // Instance of storage service for node data
 	browser BrowserDetector // Service to provide browser warnings
-	access  Access          // Instance of the access control interface
+	access  access.Access   // Instance of the access control interface
 }
 
 // NewServices a set of services to use with SWIFT. These provide defaults via
@@ -35,7 +37,7 @@ type Services struct {
 func NewServices(
 	config Configuration,
 	store storageService,
-	access Access,
+	access access.Access,
 	browser BrowserDetector) *Services {
 	var s Services
 	s.config = config

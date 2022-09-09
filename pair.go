@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 const (
@@ -89,23 +91,23 @@ func (p *pair) Conflict() string {
 
 func (p *pair) setFromBuffer(b *bytes.Buffer) error {
 	var err error
-	p.key, err = readString(b)
+	p.key, err = common.ReadString(b)
 	if err != nil {
 		return err
 	}
-	p.conflict, err = readByte(b)
+	p.conflict, err = common.ReadByte(b)
 	if err != nil {
 		return err
 	}
-	p.created, err = readTime(b)
+	p.created, err = common.ReadTime(b)
 	if err != nil {
 		return err
 	}
-	p.expires, err = readDate(b)
+	p.expires, err = common.ReadDate(b)
 	if err != nil {
 		return err
 	}
-	p.values, err = readByteArrayArray(b)
+	p.values, err = common.ReadByteArrayArray(b)
 	if err != nil {
 		return err
 	}
@@ -113,23 +115,23 @@ func (p *pair) setFromBuffer(b *bytes.Buffer) error {
 }
 
 func (p *pair) writeToBuffer(b *bytes.Buffer) error {
-	err := writeString(b, p.key)
+	err := common.WriteString(b, p.key)
 	if err != nil {
 		return err
 	}
-	err = writeByte(b, p.conflict)
+	err = common.WriteByte(b, p.conflict)
 	if err != nil {
 		return err
 	}
-	err = writeTime(b, p.created)
+	err = common.WriteTime(b, p.created)
 	if err != nil {
 		return err
 	}
-	err = writeDate(b, p.expires)
+	err = common.WriteDate(b, p.expires)
 	if err != nil {
 		return err
 	}
-	err = writeByteArrayArray(b, p.values)
+	err = common.WriteByteArrayArray(b, p.values)
 	if err != nil {
 		return err
 	}
