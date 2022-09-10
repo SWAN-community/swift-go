@@ -8,7 +8,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v48.2.0+incompatible
 	github.com/SWAN-community/access-go v0.1.0
 	github.com/SWAN-community/common-go v0.1.1
-	github.com/SWAN-community/config-go v0.1.5
+	github.com/SWAN-community/config-go v0.1.4
 	github.com/aws/aws-sdk-go v1.35.28
 	google.golang.org/api v0.44.0
 )

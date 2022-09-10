@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // HandlerShare returns an encrypted json document which contains details for
@@ -31,36 +33,44 @@ func HandlerShare(s *Services) http.HandlerFunc {
 		// Get the node associated with the request.
 		a := s.store.getNode(r.Host)
 		if a == nil {
-			err = fmt.Errorf("host '%s' is not a SWIFT node", r.Host)
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: fmt.Sprintf("host '%s' is not a SWIFT node", r.Host),
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// If the node is not an access node then return an error.
 		if a.role != roleShare {
-			err = fmt.Errorf("domain '%s' is not a share node", a.domain)
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: fmt.Sprintf("domain '%s' is not a share node", a.domain),
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Get all active nodes.
 		ns, err := s.store.getAllActiveNodes()
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Create JSON response.
 		j, err := json.Marshal(ns)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Encrypt the JSON response using the nodes shared secret.
 		b, err := a.encode(j)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 

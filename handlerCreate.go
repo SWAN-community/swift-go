@@ -18,7 +18,6 @@ package swift
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,6 +25,8 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 const (
@@ -64,22 +65,21 @@ func HandlerCreate(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Check caller can access and parse the form variables.
-		if s.getAccessAllowed(w, r) == false {
-			returnAPIError(s, w,
-				errors.New("Not authorized"),
-				http.StatusUnauthorized)
+		if s.access.GetAllowedHttp(w, r) == false {
 			return
 		}
 
 		// Create the URL from the form parameters.
 		u, err := Create(s, r.Host, r.Form)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Return the URL.
-		sendResponse(s, w, "text/plain; charset=utf-8", []byte(u))
+		common.SendResponse(w, "text/plain; charset=utf-8", []byte(u), true)
 	}
 }
 

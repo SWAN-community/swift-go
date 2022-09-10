@@ -68,8 +68,8 @@ github.com/SWAN-community/access-go v0.1.0 h1:RkLBTMvzL16xTfcc2AO8Xn1fLz/dM/J4QO
 github.com/SWAN-community/access-go v0.1.0/go.mod h1:3X2m8zBWIcZbgWm2o4nBZ/z5VfX/dvdcUXwvBaeXq/o=
 github.com/SWAN-community/common-go v0.1.1 h1:GT38CNj6cAxGnXO8E0jy6NKenBptkRsCJBvTdvp1PAs=
 github.com/SWAN-community/common-go v0.1.1/go.mod h1:jdF6/j8H4h29+O4OobHE8JS0aWSU9Zx9g5Vuh9qOQng=
-github.com/SWAN-community/config-go v0.1.5 h1:fJl987+vnTU+tSyiGsa77XlBStnjI1gegKokHv4QCLE=
-github.com/SWAN-community/config-go v0.1.5/go.mod h1:0Vf7gvtQG1dpDFc1GjRJ1ghmZnoLClQ5JVrx57tXWLU=
+github.com/SWAN-community/config-go v0.1.4 h1:D9/jOD2aDb7R8ymQ3s2+tLHqkMs2nhrekk7/x4xVuig=
+github.com/SWAN-community/config-go v0.1.4/go.mod h1:cg7hrK7Iq1CboFOcc9h1AcfZ4Tt3cjwsY0yRAXVxDLo=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=

@@ -18,9 +18,9 @@ package swift
 
 import (
 	"encoding/base64"
-	"errors"
-	"fmt"
 	"net/http"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // HandlerDecrypt takes a Services pointer and returns a HTTP handler used to
@@ -30,43 +30,42 @@ func HandlerDecrypt(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Check caller can access and parse the form variables.
-		if s.getAccessAllowed(w, r) == false {
-			returnAPIError(s, w,
-				errors.New("Not authorized"),
-				http.StatusUnauthorized)
+		if s.access.GetAllowedHttp(w, r) == false {
 			return
 		}
 
 		// Get the node associated with the request.
 		n, err := s.GetAccessNodeForHost(r.Host)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 
 		// Decode the query string to form the byte array.
 		in, err := base64.StdEncoding.DecodeString(r.Form.Get("encrypted"))
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Decrypt the byte array using the node.
 		d, err := n.decode(in)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 		if d == nil {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("Could not decrypt input"),
-				http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "could not decrypt input",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Send the byte array.
-		sendResponse(s, w, "application/octet-stream", d)
+		common.SendByteArray(w, d)
 	}
 }

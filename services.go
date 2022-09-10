@@ -89,38 +89,13 @@ func (s *Services) getNodeFromRequest(h string, q int) (*node, error) {
 	n := s.store.getNode(h)
 	// Verify that a node was found.
 	if n == nil {
-		return nil, fmt.Errorf("No access node for '%s'", h)
+		return nil, fmt.Errorf("no access node for '%s'", h)
 	}
 
 	// Verify that this node is the right type.
 	if n.role != q {
-		return nil, fmt.Errorf("Node '%s' incorrect type", n.domain)
+		return nil, fmt.Errorf("node '%s' incorrect type", n.domain)
 	}
 
 	return n, nil
-}
-
-// Returns true if the request is allowed to access the handler, otherwise
-// false. Removes the accessKey parameter from the form to prevent it being
-// used by other methods.  If false is returned then no further action is
-// needed as the method will have responded to the request already.
-func (s *Services) getAccessAllowed(
-	w http.ResponseWriter,
-	r *http.Request) bool {
-	err := r.ParseForm()
-	if err != nil {
-		returnAPIError(s, w, err, http.StatusInternalServerError)
-		return false
-	}
-	v, err := s.access.GetAllowed(r.FormValue("accessKey"))
-	if v == false || err != nil {
-		returnAPIError(
-			s,
-			w,
-			fmt.Errorf("Access denied"),
-			http.StatusNetworkAuthenticationRequired)
-		return false
-	}
-	r.Form.Del("accessKey")
-	return true
 }
