@@ -6,8 +6,9 @@ require (
 	cloud.google.com/go/firestore v1.5.0
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/Azure/azure-sdk-for-go v48.2.0+incompatible
-	github.com/SWAN-community/common-go v0.1.0
-	github.com/SWAN-community/config-go v0.1.4
+	github.com/SWAN-community/access-go v0.1.0
+	github.com/SWAN-community/common-go v0.1.1
+	github.com/SWAN-community/config-go v0.1.5
 	github.com/aws/aws-sdk-go v1.35.28
 	google.golang.org/api v0.44.0
 )
@@ -22,7 +23,6 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/Azure/go-autorest/logger v0.2.0 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
-	github.com/SWAN-community/access-go v0.0.0-00010101000000-000000000000 // indirect
 	github.com/dnaeon/go-vcr v1.1.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
