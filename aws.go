@@ -34,7 +34,7 @@ type AWS struct {
 	name      string
 	timestamp time.Time          // The last time the maps were refreshed
 	svc       *dynamodb.DynamoDB // Reference to the creators table
-	common
+	base
 }
 
 // NodeItem is the dynamodb table item representation of a node
@@ -299,7 +299,7 @@ func (a *AWS) getReadOnly() bool {
 // GetNode takes a domain name and returns the associated node. If a node
 // does not exist then nil is returned.
 func (a *AWS) getNode(domain string) (*node, error) {
-	n, err := a.common.getNode(domain)
+	n, err := a.base.getNode(domain)
 	if err != nil {
 		return nil, err
 	}
@@ -308,14 +308,14 @@ func (a *AWS) getNode(domain string) (*node, error) {
 		if err != nil {
 			return nil, err
 		}
-		n, err = a.common.getNode(domain)
+		n, err = a.base.getNode(domain)
 	}
 	return n, err
 }
 
 // GetNodes returns all the nodes associated with a network.
 func (a *AWS) getNodes(network string) (*nodes, error) {
-	ns, err := a.common.getNodes(network)
+	ns, err := a.base.getNodes(network)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +324,7 @@ func (a *AWS) getNodes(network string) (*nodes, error) {
 		if err != nil {
 			return nil, err
 		}
-		ns, err = a.common.getNodes(network)
+		ns, err = a.base.getNodes(network)
 	}
 	return ns, err
 }
@@ -335,7 +335,7 @@ func (a *AWS) getAllNodes() ([]*node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.common.getAllNodes()
+	return a.base.getAllNodes()
 }
 
 // iterateNodes calls the callback function for each node

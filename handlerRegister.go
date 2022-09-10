@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // HandlerRegister takes a Services pointer and returns a HTTP handler used to
@@ -53,7 +55,7 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		// Get any values from the form.
 		err = r.ParseForm()
 		if err != nil {
-			returnServerError(s, w, err)
+			common.ReturnServerError(w, err)
 			return
 		}
 		d.DisplayErrors = len(r.Form) > 0
@@ -118,7 +120,7 @@ func HandlerRegister(s *Services) http.HandlerFunc {
 		}
 
 		// Return the HTML page.
-		sendHTMLTemplate(s, w, registerTemplate, &d)
+		common.SendHTMLTemplate(w, registerTemplate, &d)
 	}
 }
 

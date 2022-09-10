@@ -19,6 +19,8 @@ package swift
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/SWAN-community/access-go"
 )
 
 // Services references all the information needed for every method.
@@ -26,7 +28,7 @@ type Services struct {
 	config  Configuration   // Configuration used by the server.
 	store   storageService  // Instance of storage service for node data
 	browser BrowserDetector // Service to provide browser warnings
-	access  Access          // Instance of the access control interface
+	access  access.Access   // Instance of the access control interface
 }
 
 // NewServices a set of services to use with SWIFT. These provide defaults via
@@ -35,7 +37,7 @@ type Services struct {
 func NewServices(
 	config Configuration,
 	store storageService,
-	access Access,
+	access access.Access,
 	browser BrowserDetector) *Services {
 	var s Services
 	s.config = config
@@ -87,38 +89,13 @@ func (s *Services) getNodeFromRequest(h string, q int) (*node, error) {
 	n := s.store.getNode(h)
 	// Verify that a node was found.
 	if n == nil {
-		return nil, fmt.Errorf("No access node for '%s'", h)
+		return nil, fmt.Errorf("no access node for '%s'", h)
 	}
 
 	// Verify that this node is the right type.
 	if n.role != q {
-		return nil, fmt.Errorf("Node '%s' incorrect type", n.domain)
+		return nil, fmt.Errorf("node '%s' incorrect type", n.domain)
 	}
 
 	return n, nil
-}
-
-// Returns true if the request is allowed to access the handler, otherwise
-// false. Removes the accessKey parameter from the form to prevent it being
-// used by other methods.  If false is returned then no further action is
-// needed as the method will have responded to the request already.
-func (s *Services) getAccessAllowed(
-	w http.ResponseWriter,
-	r *http.Request) bool {
-	err := r.ParseForm()
-	if err != nil {
-		returnAPIError(s, w, err, http.StatusInternalServerError)
-		return false
-	}
-	v, err := s.access.GetAllowed(r.FormValue("accessKey"))
-	if v == false || err != nil {
-		returnAPIError(
-			s,
-			w,
-			fmt.Errorf("Access denied"),
-			http.StatusNetworkAuthenticationRequired)
-		return false
-	}
-	r.Form.Del("accessKey")
-	return true
 }

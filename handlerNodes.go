@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // NodeView is a struct containing the node fields to display in the nodes
@@ -53,9 +55,9 @@ func HandlerNodes(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nvs, err := getNodesView(s)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 		}
-		sendHTMLTemplate(s, w, swiftNodesTemplate, &nvs)
+		common.SendHTMLTemplate(w, swiftNodesTemplate, &nvs)
 	}
 }
 
@@ -65,10 +67,10 @@ func HandlerNodesJSON(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		j, err := getJSON(s)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
-		sendResponse(s, w, "application/json", j)
+		common.SendJS(w, j)
 	}
 }
 

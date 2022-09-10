@@ -33,7 +33,7 @@ type Azure struct {
 	timestamp    time.Time      // The last time the maps were refreshed
 	nodesTable   *storage.Table // Reference to the node table
 	secretsTable *storage.Table // Reference to the table of node secrets
-	common
+	base
 }
 
 // NewAzure creates a new client for accessing table storage with the
@@ -73,7 +73,7 @@ func (a *Azure) getReadOnly() bool {
 }
 
 func (a *Azure) getNode(domain string) (*node, error) {
-	n, err := a.common.getNode(domain)
+	n, err := a.base.getNode(domain)
 	if err != nil {
 		return nil, err
 	}
@@ -82,13 +82,13 @@ func (a *Azure) getNode(domain string) (*node, error) {
 		if err != nil {
 			return nil, err
 		}
-		n, err = a.common.getNode(domain)
+		n, err = a.base.getNode(domain)
 	}
 	return n, err
 }
 
 func (a *Azure) getNodes(network string) (*nodes, error) {
-	ns, err := a.common.getNodes(network)
+	ns, err := a.base.getNodes(network)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (a *Azure) getNodes(network string) (*nodes, error) {
 		if err != nil {
 			return nil, err
 		}
-		ns, err = a.common.getNodes(network)
+		ns, err = a.base.getNodes(network)
 	}
 	return ns, err
 }
@@ -108,7 +108,7 @@ func (a *Azure) getAllNodes() ([]*node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.common.getAllNodes()
+	return a.base.getAllNodes()
 }
 
 // iterateNodes calls the callback function for each node

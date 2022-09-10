@@ -19,9 +19,9 @@ package swift
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // HandlerDecodeAsJSON returns the incoming request as JSON data. The query
@@ -31,52 +31,49 @@ func HandlerDecodeAsJSON(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Check caller can access and parse the form variables.
-		if s.getAccessAllowed(w, r) == false {
-			returnAPIError(s, w,
-				errors.New("not authorized"),
-				http.StatusUnauthorized)
+		if s.access.GetAllowedHttp(w, r) == false {
 			return
 		}
 
 		// Get the node associated with the request.
 		n, err := s.GetAccessNodeForHost(r.Host)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 
 		// Decode the query string to form the byte array.
 		d, err := base64.StdEncoding.DecodeString(r.Form.Get("encrypted"))
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Decrypt and decode the data into a Results.
 		v, err := n.DecodeAsResults(d)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 
 		// Validate that the timestamp has not expired.
 		if v.IsTimeStampValid() == false {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("data expired and can no longer be used"),
-				http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "data expired and can no longer be used",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Turn the Results into a JSON string.
 		j, err := json.Marshal(v)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 
 		// Send the JSON string.
-		sendResponse(s, w, "application/json", j)
+		common.SendJS(w, j)
 	}
 }

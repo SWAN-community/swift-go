@@ -19,6 +19,8 @@ package swift
 import (
 	"fmt"
 	"testing"
+
+	"github.com/SWAN-community/access-go"
 )
 
 func TestOperation(t *testing.T) {
@@ -35,7 +37,7 @@ func TestOperation(t *testing.T) {
 		return
 	}
 	k := []string{"key"}
-	a := NewAccessSimple(k)
+	a := access.NewFixed(k)
 	c := newConfigurationTest()
 	s := NewServices(c, NewStorageService(c, v), a, r)
 	o1 := newOperation(s, nil)

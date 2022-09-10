@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // handlerAlive is a handler which take the value from the request body and
@@ -32,7 +34,7 @@ func handlerAlive(s *Services) http.HandlerFunc {
 		// Get the body bytes from the request.
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 		r.Body.Close()
@@ -40,17 +42,18 @@ func handlerAlive(s *Services) http.HandlerFunc {
 		// Get the node associated with the request.
 		n := s.store.getNode(r.Host)
 		if n == nil {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("no node for '%s'", r.Host),
-				http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: fmt.Sprintf("no node for '%s'", r.Host),
+				Code:    http.StatusBadRequest})
+			return
 		}
 
 		// Decode the body to form the decrypted byte array.
 		decrypted, err := n.decode(b)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
@@ -60,15 +63,11 @@ func handlerAlive(s *Services) http.HandlerFunc {
 		w.Header().Set("Cache-Length", fmt.Sprintf("%d", len(decrypted)))
 		l, err := w.Write(decrypted)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 		if l != len(decrypted) {
-			returnAPIError(
-				s,
-				w,
-				fmt.Errorf("byte count mismatch"),
-				http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 	}

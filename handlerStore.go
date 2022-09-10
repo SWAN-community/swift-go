@@ -25,6 +25,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // HandlerStore takes a Services pointer and returns a HTTP handler used to
@@ -93,7 +95,7 @@ func HandlerStore(
 
 			// If there is still no node then generate an error.
 			if o.nextNode == nil {
-				returnServerError(s, w, fmt.Errorf("No next node available"))
+				common.ReturnServerError(w, fmt.Errorf("No next node available"))
 				return
 			}
 		}
@@ -126,7 +128,7 @@ func storeMalformed(s *Services, w http.ResponseWriter, r *http.Request) {
 	o.request = r
 	o.HTML.BackgroundColor = s.config.BackgroundColor
 	o.HTML.MessageColor = s.config.MessageColor
-	sendHTMLTemplate(s, w, malformedTemplate, &o)
+	common.SendHTMLTemplate(w, malformedTemplate, &o)
 }
 
 // If this is the home node and the last operation of a multi node operation
@@ -163,12 +165,12 @@ func (o *operation) storeWarning(
 	// Get the next URL for the node.
 	o.nextURL, err = o.getNextURL()
 	if err != nil {
-		returnServerError(s, w, err)
+		common.ReturnServerError(w, err)
 		return
 	}
 
 	// Send the HTML warning.
-	sendHTMLTemplate(s, w, warningTemplate, o)
+	common.SendHTMLTemplate(w, warningTemplate, o)
 }
 
 // If the post on complete flag is set then use the JavaScript post on complete
@@ -201,7 +203,7 @@ func (o *operation) storePostMessage(
 	w http.ResponseWriter,
 	r *http.Request,
 	t *template.Template) {
-	sendHTMLTemplate(s, w, t, o)
+	common.SendHTMLTemplate(w, t, o)
 }
 
 func (o *operation) storeReturn(
@@ -225,7 +227,7 @@ func (o *operation) storeReturn(
 	// Turn the next URL string into a url.URL value.
 	o.nextURL, err = url.Parse(nu)
 	if err != nil {
-		returnServerError(s, w, err)
+		common.ReturnServerError(w, err)
 		return
 	}
 
@@ -241,14 +243,14 @@ func (o *operation) storeReturnHTML(
 	w http.ResponseWriter,
 	r *http.Request,
 	t *template.Template) {
-	sendHTMLTemplate(s, w, t, o)
+	common.SendHTMLTemplate(w, t, o)
 }
 
 func (o *operation) storeReturnJavaScript(
 	s *Services,
 	w http.ResponseWriter,
 	r *http.Request) {
-	sendJSTemplate(s, w, javaScriptReturnTemplate, o)
+	common.SendJSTemplate(w, javaScriptReturnTemplate, o)
 }
 
 func (o *operation) storeContinue(
@@ -260,7 +262,7 @@ func (o *operation) storeContinue(
 	// Get the next URL for the node.
 	o.nextURL, err = o.getNextURL()
 	if err != nil {
-		returnServerError(s, w, err)
+		common.ReturnServerError(w, err)
 		return
 	}
 
@@ -295,13 +297,13 @@ func (o *operation) storeContinueHTML(s *Services,
 	} else {
 		t = blankTemplate
 	}
-	sendHTMLTemplate(s, w, t, o)
+	common.SendHTMLTemplate(w, t, o)
 }
 
 func (o *operation) storeContinueJavaScript(s *Services,
 	w http.ResponseWriter,
 	r *http.Request) {
-	sendJSTemplate(s, w, javaScriptProgressTemplate, o)
+	common.SendJSTemplate(w, javaScriptProgressTemplate, o)
 }
 
 // setCookies for all the resolved pairs that are not empty. If no cookies are

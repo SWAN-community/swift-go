@@ -19,6 +19,8 @@ package swift
 import (
 	"encoding/base64"
 	"net/http"
+
+	"github.com/SWAN-community/common-go"
 )
 
 // HandlerEncrypt takes a Services pointer and returns a HTTP handler used to
@@ -32,32 +34,36 @@ func HandlerEncrypt(s *Services) http.HandlerFunc {
 
 		err := r.ParseForm()
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 
 		// Get the node associated with the request.
 		n, err := s.GetAccessNodeForHost(r.Host)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusInternalServerError)
+			common.ReturnServerError(w, err)
 			return
 		}
 
 		// Decode the query string to form the byte array.
 		in, err := base64.StdEncoding.DecodeString(r.Form.Get("plain"))
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// Encrypt the byte array using the node.
-		out, err := n.encode(in)
+		b, err := n.encode(in)
 		if err != nil {
-			returnAPIError(s, w, err, http.StatusBadRequest)
+			common.ReturnApplicationError(w, &common.HttpError{
+				Message: "bad data",
+				Code:    http.StatusBadRequest})
 			return
 		}
 
 		// The output is a binary array.
-		sendResponse(s, w, "application/octet-stream", out)
+		common.SendByteArray(w, b)
 	}
 }

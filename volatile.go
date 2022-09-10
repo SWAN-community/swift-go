@@ -22,7 +22,7 @@ import "fmt"
 type Volatile struct {
 	name     string
 	readOnly bool
-	common
+	base
 }
 
 func newVolatile(name string, readOnly bool, ns []*node) *Volatile {
@@ -38,11 +38,11 @@ func (v *Volatile) getName() string {
 }
 
 func (v *Volatile) getNode(domain string) (*node, error) {
-	return v.common.getNode(domain)
+	return v.base.getNode(domain)
 }
 
 func (v *Volatile) getNodes(network string) (*nodes, error) {
-	return v.common.getNodes(network)
+	return v.base.getNodes(network)
 }
 
 func (v *Volatile) getReadOnly() bool {
@@ -52,7 +52,7 @@ func (v *Volatile) getReadOnly() bool {
 func (v *Volatile) iterateNodes(
 	callback func(n *node, s interface{}) error,
 	s interface{}) error {
-	for _, n := range v.common.nodes {
+	for _, n := range v.base.nodes {
 		err := callback(n, s)
 		if err != nil {
 			return err
