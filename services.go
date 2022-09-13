@@ -39,12 +39,7 @@ func NewServices(
 	store storageService,
 	access access.Access,
 	browser BrowserDetector) *Services {
-	var s Services
-	s.config = config
-	s.store = store
-	s.access = access
-	s.browser = browser
-	return &s
+	return &Services{config: config, store: store, access: access, browser: browser}
 }
 
 // Config returns the configuration service.

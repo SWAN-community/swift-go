@@ -48,6 +48,7 @@ type Store interface {
 
 	// getReadonly returns true if the store does not support inserts and updates.
 	getReadOnly() bool
+
 	// iterateNodes call the callback for every node
 	// n is the node
 	// s is the state for the function
