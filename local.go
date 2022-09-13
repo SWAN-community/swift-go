@@ -18,7 +18,6 @@ package swift
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path"
 	"sync"
@@ -118,7 +117,7 @@ func (l *Local) setNode(n *node) error {
 	nis := make(map[string]*node)
 
 	// Fetch all the records from the nodes file.
-	data, err := ioutil.ReadFile(l.nodesFile)
+	data, err := os.ReadFile(l.nodesFile)
 	if err != nil {
 		return err
 	}
@@ -135,7 +134,7 @@ func (l *Local) setNode(n *node) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(l.nodesFile, data, 0644)
+	err = os.WriteFile(l.nodesFile, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -206,7 +205,7 @@ func readLocalStore(file string) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +220,7 @@ func writeLocalStore(file string, data []byte) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(file, data, 0644)
+	err = os.WriteFile(file, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -237,7 +236,7 @@ func createLocalStore(file string) error {
 			os.MkdirAll(path.Dir(file), 0700)
 		}
 
-		f, err = os.Create(file)
+		f, err := os.Create(file)
 		if err != nil {
 			return err
 		}
