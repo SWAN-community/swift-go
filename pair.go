@@ -52,6 +52,18 @@ type pair struct {
 	cookieWriteTime time.Time // Last time the cookie was written to
 }
 
+// SetKey - used for testing.
+func (p *Pair) SetKey(k string) { p.key = k }
+
+// SetCreated - used for testing.
+func (p *Pair) SetCreated(t time.Time) { p.created = t }
+
+// SetExpires - used for testing.
+func (p *Pair) SetExpires(t time.Time) { p.expires = t }
+
+// SetValues - used for testing.
+func (p *Pair) SetValues(v [][]byte) { p.values = v }
+
 // Key readonly accessor to the pair's key.
 func (p *Pair) Key() string { return p.key }
 
