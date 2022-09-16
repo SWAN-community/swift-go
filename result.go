@@ -31,21 +31,15 @@ const resultSeparator = "\r"
 // Results from a storage operation.
 type Results struct {
 	HTML              // Include the common HTML UI members.
-	expires time.Time // The time after which the data can not be decrypted
-	pairs   []*Pair   // Array of key value pairs
-	state   []string  // Optional state information
+	Expires time.Time // The time after which the data can not be decrypted
+	Pairs   []*Pair   // Array of key value pairs
+	State   []string  // Optional state information
 }
-
-// Pairs common.Readonly accessor to the results's key value pairs.
-func (r *Results) Pairs() []*Pair { return r.pairs }
-
-// State common.Readonly accessor to the results's state array.
-func (r *Results) State() []string { return r.state }
 
 // Get returns the result for the key provided, or nil if the key does not
 // exist.
 func (r *Results) Get(key string) *Pair {
-	for _, r := range r.pairs {
+	for _, r := range r.Pairs {
 		if key == r.key {
 			return r
 		}
@@ -56,7 +50,7 @@ func (r *Results) Get(key string) *Pair {
 // Map returns the results as a map, keyed on the pair key.
 func (r *Results) Map() map[string]*Pair {
 	p := make(map[string]*Pair)
-	for _, r := range r.pairs {
+	for _, r := range r.Pairs {
 		p[r.key] = r
 	}
 	return p
@@ -64,7 +58,7 @@ func (r *Results) Map() map[string]*Pair {
 
 // IsTimeStampValid returns true if the time stamp of the result is valid.
 func (r *Results) IsTimeStampValid() bool {
-	return time.Now().UTC().Before(r.expires)
+	return time.Now().UTC().Before(r.Expires)
 }
 
 // DecodeResults turns a byte array into a results data structure.
@@ -75,7 +69,7 @@ func DecodeResults(d []byte) (*Results, error) {
 		return nil, errors.New("byte array empty")
 	}
 	b := bytes.NewBuffer(d)
-	r.expires, err = common.ReadTime(b)
+	r.Expires, err = common.ReadTime(b)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +77,7 @@ func DecodeResults(d []byte) (*Results, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.state = strings.Split(s, resultSeparator)
+	r.State = strings.Split(s, resultSeparator)
 	err = r.HTML.set(b)
 	if err != nil {
 		return nil, err
@@ -109,7 +103,7 @@ func DecodeResults(d []byte) (*Results, error) {
 		if err != nil {
 			return nil, err
 		}
-		r.pairs = append(r.pairs, &Pair{k, c, e, v})
+		r.Pairs = append(r.Pairs, &Pair{k, c, e, v})
 	}
 	return &r, nil
 }
@@ -117,11 +111,11 @@ func DecodeResults(d []byte) (*Results, error) {
 func encodeResults(r *Results) ([]byte, error) {
 	var b bytes.Buffer
 	var err error
-	err = common.WriteTime(&b, r.expires)
+	err = common.WriteTime(&b, r.Expires)
 	if err != nil {
 		return nil, err
 	}
-	err = common.WriteString(&b, strings.Join(r.state, resultSeparator))
+	err = common.WriteString(&b, strings.Join(r.State, resultSeparator))
 	if err != nil {
 		return nil, err
 	}
@@ -129,11 +123,11 @@ func encodeResults(r *Results) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = common.WriteByte(&b, byte(len(r.pairs)))
+	err = common.WriteByte(&b, byte(len(r.Pairs)))
 	if err != nil {
 		return nil, err
 	}
-	for _, e := range r.pairs {
+	for _, e := range r.Pairs {
 		err = common.WriteString(&b, e.key)
 		if err != nil {
 			return nil, err

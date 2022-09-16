@@ -355,15 +355,15 @@ func (o *operation) getResults() (string, error) {
 	// Build the results array of key value pairs.
 	var r Results
 	for _, p := range o.resolved {
-		r.pairs = append(r.pairs, &p.Pair)
+		r.Pairs = append(r.Pairs, &p.Pair)
 	}
 
 	// Add the expiry time for the results.
-	r.expires = time.Now().UTC().Add(
+	r.Expires = time.Now().UTC().Add(
 		o.services.config.StorageOperationTimeoutDuration())
 
 	// Add other state information from the storage operation.
-	r.state = o.state
+	r.State = o.state
 
 	// Add HTML user interface parameters from the storage operation.
 	r.HTML = o.HTML
