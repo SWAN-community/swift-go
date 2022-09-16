@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"fmt"
-	"io/ioutil"
+	"io"
 )
 
 // compress the byte array using the zlib compression routine.
@@ -48,5 +48,5 @@ func decompress(b []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer z.Close()
-	return ioutil.ReadAll(z)
+	return io.ReadAll(z)
 }

@@ -20,7 +20,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -388,7 +388,7 @@ func (o *operation) getResults() (string, error) {
 	if res.StatusCode != http.StatusOK {
 		return "", newResponseError(u.String(), res)
 	}
-	in, err := ioutil.ReadAll(res.Body)
+	in, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}

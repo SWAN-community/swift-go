@@ -19,7 +19,7 @@ package swift
 import (
 	"bytes"
 	"crypto/rand"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -191,7 +191,7 @@ func (a *aliveService) callAlive(
 	}
 
 	// Read the response and return it.
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}

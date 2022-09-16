@@ -18,7 +18,7 @@ package swift
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/SWAN-community/common-go"
@@ -32,7 +32,7 @@ func handlerAlive(s *Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Get the body bytes from the request.
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			common.ReturnServerError(w, err)
 			return

@@ -72,7 +72,7 @@ func DecodeResults(d []byte) (*Results, error) {
 	var err error
 	var r Results
 	if d == nil {
-		return nil, errors.New("Byte array empty")
+		return nil, errors.New("byte array empty")
 	}
 	b := bytes.NewBuffer(d)
 	r.expires, err = common.ReadTime(b)

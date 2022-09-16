@@ -18,7 +18,7 @@ package swift
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -44,7 +44,7 @@ func AddHandlers(
 }
 
 func newResponseError(url string, resp *http.Response) error {
-	in, err := ioutil.ReadAll(resp.Body)
+	in, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
